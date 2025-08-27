@@ -51,7 +51,7 @@ export async function requestPasswordReset(
 
       const mailOptions = {
         from: process.env.MAIL_FROM,
-        to: user.email,
+        to: email, // use validated email string to satisfy nodemailer types
         subject: "Reset your password",
         text: `You requested a password reset. Click the link to reset your password: ${resetUrl}\n\nIf you did not request this, please ignore this email.`,
         html: `<p>You requested a password reset.</p><p>Click the link to reset your password: <a href="${resetUrl}">${resetUrl}</a></p><p>If you did not request this, please ignore this email.</p>`,
