@@ -19,18 +19,18 @@ interface ChatChannelProps {
 
 export default function ChatChannel({ open, openSidebar }: ChatChannelProps) {
     const [showSearch, setShowSearch] = useState(false);
-    
+
     return (
-    <div className={cn("relative w-full md:block", !open && "hidden")}>            
-    <Channel>
-    <Window>
-    <CustomChannelHeader openSidebar={openSidebar} onOpenSearch={() => setShowSearch(true)} />
-    <MessageList typingIndicator={true} />
-    <MessageInput />
-    </Window>
-    </Channel>
-    {showSearch && <MessageSearch onClose={() => setShowSearch(false)} />}
-    </div>
+        <div className={cn("relative w-full md:block", !open && "hidden")}>
+            <Channel>
+                <Window>
+                    <CustomChannelHeader openSidebar={openSidebar} onOpenSearch={() => setShowSearch(true)} />
+                    <MessageList />
+                    <MessageInput />
+                </Window>
+            </Channel>
+            {showSearch && <MessageSearch onClose={() => setShowSearch(false)} />}
+        </div>
     );
 }
 
