@@ -6,11 +6,11 @@ import ForYouFeed from "./ForYouFeed";
 
 export default function Home() {
   return (
-    <main className="flex w-full min-w-0 gap-5">
+    <main className="mx-auto flex w-full max-w-screen-xl min-w-0 gap-3 px-2 sm:gap-5 sm:px-4">
       <div className="w-full min-w-0 space-y-5">
         <PostEditor />
         <Tabs defaultValue="for-you">
-          <TabsList>
+          <TabsList className="flex flex-wrap gap-2">
             <TabsTrigger value="for-you">For you</TabsTrigger>
             <TabsTrigger value="following">Following</TabsTrigger>
           </TabsList>

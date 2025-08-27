@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
-import { MailPlus, X } from "lucide-react";
+import { MailPlus, Users2, MessagesSquare, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import {
     ChannelList,
@@ -11,6 +11,7 @@ import {
 } from "stream-chat-react";
 import { useSession } from "../SessionProvider";
 import NewChatDialog from "./NewChatDialog";
+import PeopleList from "./PeopleList";
 
 interface ChatSidebarProps {
     open: boolean;
@@ -43,6 +44,8 @@ export default function ChatSidebar({ open, onClose }: ChatSidebarProps) {
         [onClose],
     );
 
+    const [tab, setTab] = useState<"channels" | "people">("channels");
+
     return (
         <div
             className={cn(
@@ -51,24 +54,36 @@ export default function ChatSidebar({ open, onClose }: ChatSidebarProps) {
             )}
         >
             <MenuHeader onClose={onClose} />
-            <ChannelList
-                filters={{
-                    type: "messaging",
-                    members: { $in: [user.id] },
-                }}
-                showChannelSearch
-                options={{ state: true, presence: true, limit: 8 }}
-                sort={{ last_message_at: -1 }}
-                additionalChannelSearchProps={{
-                    searchForChannels: true,
-                    searchQueryParams: {
-                        channelFilters: {
-                            filters: { members: { $in: [user.id] } },
+            <div className="flex gap-1 px-2 pb-2">
+                <Button variant={tab === "channels" ? "secondary" : "ghost"} size="sm" onClick={() => setTab("channels")} title="Channels">
+                    <MessagesSquare className="mr-2 size-4" /> Channels
+                </Button>
+                <Button variant={tab === "people" ? "secondary" : "ghost"} size="sm" onClick={() => setTab("people")} title="People">
+                    <Users2 className="mr-2 size-4" /> People
+                </Button>
+            </div>
+            {tab === "channels" ? (
+                <ChannelList
+                    filters={{
+                        type: "messaging",
+                        members: { $in: [user.id] },
+                    }}
+                    showChannelSearch
+                    options={{ state: true, presence: true, limit: 8 }}
+                    sort={{ last_message_at: -1 }}
+                    additionalChannelSearchProps={{
+                        searchForChannels: true,
+                        searchQueryParams: {
+                            channelFilters: {
+                                filters: { members: { $in: [user.id] } },
+                            },
                         },
-                    },
-                }}
-                Preview={ChannelPreviewCustom}
-            />
+                    }}
+                    Preview={ChannelPreviewCustom}
+                />
+            ) : (
+                <PeopleList onPicked={onClose} />
+            )}
         </div>
     );
 }

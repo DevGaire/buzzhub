@@ -29,6 +29,11 @@ export async function login(
       };
     }
 
+    // Block login for unverified email/password users
+    if (!existingUser.googleId && !existingUser.emailVerifiedAt) {
+      return { error: "Please verify your email before logging in." };
+    }
+
     const validPassword = await verify(existingUser.passwordHash, password, {
       memoryCost: 19456,
       timeCost: 2,

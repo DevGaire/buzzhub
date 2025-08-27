@@ -23,9 +23,14 @@ export default function Page() {
               <div className="h-px flex-1 bg-muted" />
             </div>
             <LoginForm />
-            <Link href="/signup" className="block text-center hover:underline">
-              Don&apos;t have an account? Sign up
-            </Link>
+            <div className="flex justify-between text-sm">
+              <Link href="/forgot-password" className="hover:underline">
+                Forgot password?
+              </Link>
+              <Link href="/signup" className="hover:underline">
+                Don&apos;t have an account? Sign up
+              </Link>
+            </div>
           </div>
         </div>
         <Image

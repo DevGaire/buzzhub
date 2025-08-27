@@ -35,3 +35,13 @@ export type UpdateUserProfileValues = z.infer<typeof updateUserProfileSchema>;
 export const createCommentSchema = z.object({
   content: requiredString,
 });
+
+export const forgotPasswordSchema = z.object({
+  email: requiredString.email("Invalid email address"),
+});
+export type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>;
+
+export const resetPasswordSchema = z.object({
+  password: requiredString.min(8, "Must be at least 8 characters"),
+});
+export type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;

@@ -10,33 +10,27 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { signUpSchema, SignUpValues } from "@/lib/validation";
+import { resetPasswordSchema, ResetPasswordValues } from "@/lib/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
-import { signUp } from "./actions";
+import { resetPassword } from "./actions";
 
-export default function SignUpForm() {
+export default function ResetPasswordForm({ token }: { token: string }) {
   const [error, setError] = useState<string>();
   const [success, setSuccess] = useState<string>();
-
   const [isPending, startTransition] = useTransition();
 
-  const form = useForm<SignUpValues>({
-    resolver: zodResolver(signUpSchema),
-    defaultValues: {
-      email: "",
-      username: "",
-      password: "",
-    },
+  const form = useForm<ResetPasswordValues>({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: { password: "" },
   });
 
-  async function onSubmit(values: SignUpValues) {
+  async function onSubmit(values: ResetPasswordValues) {
     setError(undefined);
     setSuccess(undefined);
     startTransition(async () => {
-      const { error, success } = await signUp(values);
+      const { error, success } = await resetPassword({ ...values, token });
       if (error) setError(error);
       if (success) setSuccess(success);
     });
@@ -49,45 +43,19 @@ export default function SignUpForm() {
         {success && <p className="text-center text-green-600">{success}</p>}
         <FormField
           control={form.control}
-          name="username"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Username</FormLabel>
-              <FormControl>
-                <Input placeholder="Username" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input placeholder="Email" type="email" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Password</FormLabel>
+              <FormLabel>New password</FormLabel>
               <FormControl>
-                <PasswordInput placeholder="Password" {...field} />
+                <PasswordInput placeholder="New password" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
         <LoadingButton loading={isPending} type="submit" className="w-full">
-          Create account
+          Reset password
         </LoadingButton>
       </form>
     </Form>

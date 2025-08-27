@@ -1,7 +1,6 @@
 "use client";
 
 import LoadingButton from "@/components/LoadingButton";
-import { PasswordInput } from "@/components/PasswordInput";
 import {
   Form,
   FormControl,
@@ -11,32 +10,27 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { signUpSchema, SignUpValues } from "@/lib/validation";
+import { forgotPasswordSchema, ForgotPasswordValues } from "@/lib/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
-import { signUp } from "./actions";
+import { requestPasswordReset } from "./actions";
 
-export default function SignUpForm() {
+export default function ForgotPasswordForm() {
   const [error, setError] = useState<string>();
   const [success, setSuccess] = useState<string>();
-
   const [isPending, startTransition] = useTransition();
 
-  const form = useForm<SignUpValues>({
-    resolver: zodResolver(signUpSchema),
-    defaultValues: {
-      email: "",
-      username: "",
-      password: "",
-    },
+  const form = useForm<ForgotPasswordValues>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: { email: "" },
   });
 
-  async function onSubmit(values: SignUpValues) {
+  async function onSubmit(values: ForgotPasswordValues) {
     setError(undefined);
     setSuccess(undefined);
     startTransition(async () => {
-      const { error, success } = await signUp(values);
+      const { error, success } = await requestPasswordReset(values);
       if (error) setError(error);
       if (success) setSuccess(success);
     });
@@ -47,19 +41,6 @@ export default function SignUpForm() {
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
         {error && <p className="text-center text-destructive">{error}</p>}
         {success && <p className="text-center text-green-600">{success}</p>}
-        <FormField
-          control={form.control}
-          name="username"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Username</FormLabel>
-              <FormControl>
-                <Input placeholder="Username" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
         <FormField
           control={form.control}
           name="email"
@@ -73,21 +54,8 @@ export default function SignUpForm() {
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Password</FormLabel>
-              <FormControl>
-                <PasswordInput placeholder="Password" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
         <LoadingButton loading={isPending} type="submit" className="w-full">
-          Create account
+          Send reset link
         </LoadingButton>
       </form>
     </Form>

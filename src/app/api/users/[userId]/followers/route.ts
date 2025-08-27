@@ -59,28 +59,34 @@ export async function POST(
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await prisma.$transaction([
-      prisma.follow.upsert({
+    if (userId === loggedInUser.id) {
+      return Response.json({ error: "Cannot follow yourself" }, { status: 400 });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const existing = await tx.follow.findUnique({
         where: {
           followerId_followingId: {
             followerId: loggedInUser.id,
             followingId: userId,
           },
         },
-        create: {
-          followerId: loggedInUser.id,
-          followingId: userId,
-        },
-        update: {},
-      }),
-      prisma.notification.create({
-        data: {
-          issuerId: loggedInUser.id,
-          recipientId: userId,
-          type: "FOLLOW",
-        },
-      }),
-    ]);
+      });
+
+      if (!existing) {
+        await tx.follow.create({
+          data: { followerId: loggedInUser.id, followingId: userId },
+        });
+
+        await tx.notification.create({
+          data: {
+            issuerId: loggedInUser.id,
+            recipientId: userId,
+            type: "FOLLOW",
+          },
+        });
+      }
+    });
 
     return new Response();
   } catch (error) {
@@ -98,6 +104,11 @@ export async function DELETE(
 
     if (!loggedInUser) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (userId === loggedInUser.id) {
+      // no-op: users cannot follow themselves, ensure delete is harmless
+      return new Response();
     }
 
     await prisma.$transaction([
