@@ -7,6 +7,7 @@ export async function GET(req: NextRequest) {
   try {
     const q = req.nextUrl.searchParams.get("q") || "";
     const cursor = req.nextUrl.searchParams.get("cursor") || undefined;
+    const sort = req.nextUrl.searchParams.get("sort") || "new"; // new | top
 
     const searchQuery = q.split(" ").join(" & ");
 
@@ -43,7 +44,10 @@ export async function GET(req: NextRequest) {
         ],
       },
       include: getPostDataInclude(user.id),
-      orderBy: { createdAt: "desc" },
+      orderBy:
+        sort === "top"
+          ? [{ likes: { _count: "desc" } }, { createdAt: "desc" }]
+          : { createdAt: "desc" },
       take: pageSize + 1,
       cursor: cursor ? { id: cursor } : undefined,
     });

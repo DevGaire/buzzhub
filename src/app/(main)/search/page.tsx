@@ -1,6 +1,7 @@
 import TrendsSidebar from "@/components/TrendsSidebar";
 import { Metadata } from "next";
 import SearchResults from "./SearchResults";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface PageProps {
     searchParams: { q: string };
@@ -21,7 +22,18 @@ export default function Page({ searchParams: { q } }: PageProps) {
                         Search results for &quot;{q}&quot;
                     </h1>
                 </div>
-                <SearchResults query={q} />
+                <Tabs defaultValue="new">
+                    <TabsList>
+                        <TabsTrigger value="new">New</TabsTrigger>
+                        <TabsTrigger value="top">Top</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="new">
+                        <SearchResults query={q} />
+                    </TabsContent>
+                    <TabsContent value="top">
+                        <SearchResults query={`${q} sort:top`} />
+                    </TabsContent>
+                </Tabs>
             </div>
             <TrendsSidebar />
         </main>

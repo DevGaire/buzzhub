@@ -2,7 +2,7 @@ import UserAvatar from "@/components/UserAvatar";
 import { NotificationData } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { NotificationType } from "@prisma/client";
-import { Heart, MessageCircle, User2 } from "lucide-react";
+import { AtSign, Heart, MessageCircle, User2 } from "lucide-react";
 import Link from "next/link";
 
 interface NotificationProps {
@@ -14,6 +14,11 @@ export default function Notification({ notification }: NotificationProps) {
         NotificationType,
         { message: string; icon: JSX.Element; href: string }
     > = {
+        MENTION: {
+            message: `${notification.issuer.displayName} mentioned you in a post`,
+            icon: <AtSign className="size-7 text-primary" />,
+            href: `/posts/${notification.postId}`,
+        },
         FOLLOW: {
             message: `${notification.issuer.displayName} followed you`,
             icon: <User2 className="size-7 text-primary" />,

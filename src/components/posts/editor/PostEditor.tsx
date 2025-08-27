@@ -46,6 +46,8 @@ export default function PostEditor() {
         placeholder: "What's crack-a-lackin'?",
       }),
     ],
+    // Prevent SSR hydration mismatch warning from Tiptap
+    immediatelyRender: false,
   });
 
   const input =

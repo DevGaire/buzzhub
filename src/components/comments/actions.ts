@@ -41,6 +41,23 @@ export async function submitComment({
       : []),
   ]);
 
+  // mention notifications in comment
+  const mentioned = Array.from(new Set(
+    (contentValidated.match(/@([a-zA-Z0-9_]+)/g) || []).map((m) => m.slice(1).toLowerCase())
+  ));
+  if (mentioned.length) {
+    const users = await prisma.user.findMany({
+      where: { username: { in: mentioned } },
+      select: { id: true },
+    });
+    await prisma.notification.createMany({
+      data: users
+        .filter((u) => u.id !== user.id)
+        .map((u) => ({ issuerId: user.id, recipientId: u.id, postId: post.id, type: "MENTION" })),
+      skipDuplicates: true,
+    });
+  }
+
   return newComment;
 }
 

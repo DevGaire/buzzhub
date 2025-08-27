@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Menu } from "lucide-react";
+import { Menu, Search } from "lucide-react";
+import { useState } from "react";
+import MessageSearch from "./MessageSearch";
 import {
     Channel,
     ChannelHeader,
@@ -16,16 +18,19 @@ interface ChatChannelProps {
 }
 
 export default function ChatChannel({ open, openSidebar }: ChatChannelProps) {
+    const [showSearch, setShowSearch] = useState(false);
+    
     return (
-        <div className={cn("w-full md:block", !open && "hidden")}>
-            <Channel>
-                <Window>
-                    <CustomChannelHeader openSidebar={openSidebar} />
-                    <MessageList />
-                    <MessageInput />
-                </Window>
-            </Channel>
-        </div>
+    <div className={cn("relative w-full md:block", !open && "hidden")}>            
+    <Channel>
+    <Window>
+    <CustomChannelHeader openSidebar={openSidebar} onOpenSearch={() => setShowSearch(true)} />
+    <MessageList typingIndicator={true} />
+    <MessageInput />
+    </Window>
+    </Channel>
+    {showSearch && <MessageSearch onClose={() => setShowSearch(false)} />}
+    </div>
     );
 }
 
@@ -36,7 +41,7 @@ interface CustomChannelHeaderProps extends ChannelHeaderProps {
 function CustomChannelHeader({
     openSidebar,
     ...props
-}: CustomChannelHeaderProps) {
+}: CustomChannelHeaderProps & { onOpenSearch?: () => void }) {
     return (
         <div className="flex items-center gap-3">
             <div className="h-full p-2 md:hidden">
@@ -45,6 +50,11 @@ function CustomChannelHeader({
                 </Button>
             </div>
             <ChannelHeader {...props} />
+            <div className="ms-auto p-2">
+                <Button size="icon" variant="ghost" title="Search messages" onClick={props.onOpenSearch}>
+                    <Search className="size-5" />
+                </Button>
+            </div>
         </div>
     );
 }
