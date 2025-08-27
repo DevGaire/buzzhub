@@ -12,6 +12,7 @@ import {
 import { useSession } from "../SessionProvider";
 import NewChatDialog from "./NewChatDialog";
 import PeopleList from "./PeopleList";
+import NotesBar from "./NotesBar";
 
 interface ChatSidebarProps {
     open: boolean;
@@ -63,6 +64,8 @@ export default function ChatSidebar({ open, onClose }: ChatSidebarProps) {
                 </Button>
             </div>
             {tab === "channels" ? (
+                <>
+                <NotesBar />
                 <ChannelList
                     filters={{
                         type: "messaging",
@@ -81,6 +84,7 @@ export default function ChatSidebar({ open, onClose }: ChatSidebarProps) {
                     }}
                     Preview={ChannelPreviewCustom}
                 />
+                </>
             ) : (
                 <PeopleList onPicked={onClose} />
             )}
