@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 import { DefaultStreamChatGenerics, useChatContext } from "stream-chat-react";
-import { Loader2, Search } from "lucide-react";
+import { Search, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { LoadingSpinner, EmptyState } from "@/components/ui/loading-states";
+import { ComponentErrorBoundary } from "@/components/ErrorBoundary";
+import { handleError } from "@/lib/error-handling";
 import UserAvatar from "@/components/UserAvatar";
 
 export default function MessageSearch({ onClose }: { onClose: () => void }) {
@@ -10,10 +14,18 @@ export default function MessageSearch({ onClose }: { onClose: () => void }) {
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   const runSearch = async () => {
-    if (!q.trim()) return;
+    if (!q.trim()) {
+      setResults([]);
+      setError(null);
+      return;
+    }
+
     setLoading(true);
+    setError(null);
+
     try {
       // Search across user's messaging channels
       const response = await client.search(
@@ -22,8 +34,18 @@ export default function MessageSearch({ onClose }: { onClose: () => void }) {
         { limit: 20 },
       );
       setResults(response.results || []);
+    } catch (error) {
+      console.error('Search error:', error);
+      setError('Failed to search messages. Please try again.');
+      handleError(error, 'Message Search');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      runSearch();
     }
   };
 
@@ -44,7 +66,7 @@ export default function MessageSearch({ onClose }: { onClose: () => void }) {
           </button>
         </div>
         <div className="h-96 overflow-y-auto p-2">
-          {loading && <Loader2 className="mx-auto my-3 animate-spin" />}
+          {loading && <LoadingSpinner className="mx-auto my-3" />}
           {!loading && results.length === 0 && (
             <p className="my-3 text-center text-muted-foreground">No results yet. Type and press Enter.</p>
           )}

@@ -1,13 +1,17 @@
-import { Button } from "@/components/ui/button";
+"use client";
 import { cn } from "@/lib/utils";
-import { Menu, Search } from "lucide-react";
-import { useState } from "react";
-import MessageSearch from "./MessageSearch";
+import { useState, useCallback } from "react";
+import dynamic from "next/dynamic";
+const MessageSearch = dynamic(() => import("./MessageSearch"), { ssr: false });
+import "stream-chat-react/dist/css/v2/index.css";
+import ConnectionStatus from "./ConnectionStatus";
+import { MessageInputTyping } from "./EnhancedTypingIndicator";
+import ChatNotification from "./ChatNotification";
+import { ComponentErrorBoundary } from "@/components/ErrorBoundary";
 import {
     Channel,
     ChannelHeader,
-    ChannelHeaderProps,
-    MessageInput,
+        MessageInput,
     MessageList,
     Window,
 } from "stream-chat-react";
@@ -19,42 +23,32 @@ interface ChatChannelProps {
 
 export default function ChatChannel({ open, openSidebar }: ChatChannelProps) {
     const [showSearch, setShowSearch] = useState(false);
+    const handleOpenSearch = useCallback(() => setShowSearch(true), []);
+    const handleCloseSearch = useCallback(() => setShowSearch(false), []);
 
     return (
-        <div className={cn("relative w-full md:block", !open && "hidden")}>
-            <Channel>
-                <Window>
-                    <CustomChannelHeader openSidebar={openSidebar} onOpenSearch={() => setShowSearch(true)} />
-                    <MessageList />
-                    <MessageInput />
-                </Window>
-            </Channel>
-            {showSearch && <MessageSearch onClose={() => setShowSearch(false)} />}
-        </div>
-    );
-}
+        <ComponentErrorBoundary componentName="Chat Channel">
+            <div className={cn("relative w-full md:block h-full min-h-0", !open && "hidden")}>
+                {open ? (
+                <div className="h-full min-h-0 flex flex-col">
+                <Channel>
+                    <Window>
+                        <ChannelHeader />
+                        <MessageList />
+                        <MessageInput focus />
+                    </Window>
+                <ConnectionStatus className="mx-3 mt-1 text-xs" />
+                        <MessageInputTyping />
+                </Channel>
+                </div>
+                ) : null}
 
-interface CustomChannelHeaderProps extends ChannelHeaderProps {
-    openSidebar: () => void;
-}
+                {/* Search Modal */}
+                {showSearch && <MessageSearch onClose={handleCloseSearch} />}
 
-function CustomChannelHeader({
-    openSidebar,
-    ...props
-}: CustomChannelHeaderProps & { onOpenSearch?: () => void }) {
-    return (
-        <div className="flex items-center gap-3">
-            <div className="h-full p-2 md:hidden">
-                <Button size="icon" variant="ghost" onClick={openSidebar}>
-                    <Menu className="size-5" />
-                </Button>
+                {/* Chat Notifications */}
+                <ChatNotification />
             </div>
-            <ChannelHeader {...props} />
-            <div className="ms-auto p-2">
-                <Button size="icon" variant="ghost" title="Search messages" onClick={props.onOpenSearch}>
-                    <Search className="size-5" />
-                </Button>
-            </div>
-        </div>
+        </ComponentErrorBoundary>
     );
 }

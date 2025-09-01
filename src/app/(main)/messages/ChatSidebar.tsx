@@ -50,40 +50,42 @@ export default function ChatSidebar({ open, onClose }: ChatSidebarProps) {
     return (
         <div
             className={cn(
-                "size-full flex-col border-e md:flex md:w-72",
+                "size-full flex-col border-e md:flex md:w-72 compact-sidebar",
                 open ? "flex" : "hidden",
             )}
         >
             <MenuHeader onClose={onClose} />
-            <div className="flex gap-1 px-2 pb-2">
-                <Button variant={tab === "channels" ? "secondary" : "ghost"} size="sm" onClick={() => setTab("channels")} title="Channels">
-                    <MessagesSquare className="mr-2 size-4" /> Channels
+            <div className="flex gap-1 px-3 pb-2">
+                <Button variant={tab === "channels" ? "secondary" : "ghost"} size="sm" onClick={() => setTab("channels")} title="Channels" className="text-xs h-7">
+                    <MessagesSquare className="mr-1 size-3" /> Chats
                 </Button>
-                <Button variant={tab === "people" ? "secondary" : "ghost"} size="sm" onClick={() => setTab("people")} title="People">
-                    <Users2 className="mr-2 size-4" /> People
+                <Button variant={tab === "people" ? "secondary" : "ghost"} size="sm" onClick={() => setTab("people")} title="People" className="text-xs h-7">
+                    <Users2 className="mr-1 size-3" /> People
                 </Button>
             </div>
             {tab === "channels" ? (
                 <>
-                <NotesBar />
-                <ChannelList
-                    filters={{
-                        type: "messaging",
-                        members: { $in: [user.id] },
-                    }}
-                    showChannelSearch
-                    options={{ state: true, presence: true, limit: 8 }}
-                    sort={{ last_message_at: -1 }}
-                    additionalChannelSearchProps={{
-                        searchForChannels: true,
-                        searchQueryParams: {
-                            channelFilters: {
-                                filters: { members: { $in: [user.id] } },
-                            },
-                        },
-                    }}
-                    Preview={ChannelPreviewCustom}
-                />
+                    <NotesBar />
+                    <div className="compact-channel-list">
+                        <ChannelList
+                            filters={{
+                                type: "messaging",
+                                members: { $in: [user.id] },
+                            }}
+                            showChannelSearch
+                            options={{ state: true, presence: true, limit: 12 }}
+                            sort={{ last_message_at: -1 }}
+                            additionalChannelSearchProps={{
+                                searchForChannels: true,
+                                searchQueryParams: {
+                                    channelFilters: {
+                                        filters: { members: { $in: [user.id] } },
+                                    },
+                                },
+                            }}
+                            Preview={ChannelPreviewCustom}
+                        />
+                    </div>
                 </>
             ) : (
                 <PeopleList onPicked={onClose} />

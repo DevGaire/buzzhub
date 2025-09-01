@@ -45,3 +45,9 @@ export const resetPasswordSchema = z.object({
   password: requiredString.min(8, "Must be at least 8 characters"),
 });
 export type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;
+
+export const createStorySchema = z.object({
+  mediaIds: z.array(z.string()).min(1, "At least one media file is required").max(10, "Cannot have more than 10 media files"),
+});
+
+export type CreateStoryValues = z.infer<typeof createStorySchema>;

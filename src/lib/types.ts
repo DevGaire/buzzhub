@@ -131,3 +131,56 @@ export interface NotificationCountInfo {
 export interface MessageCountInfo {
   unreadCount: number;
 }
+
+// Story-related types
+export function getStoryDataInclude(loggedInUserId: string) {
+  return {
+    user: {
+      select: getUserDataSelect(loggedInUserId),
+    },
+    items: {
+      include: {
+        media: true,
+      },
+      orderBy: {
+        order: "asc" as const,
+      },
+    },
+    views: {
+      where: {
+        userId: loggedInUserId,
+      },
+      select: {
+        userId: true,
+        viewedAt: true,
+      },
+    },
+    _count: {
+      select: {
+        views: true,
+      },
+    },
+  } satisfies Prisma.StoryInclude;
+}
+
+export type StoryData = Prisma.StoryGetPayload<{
+  include: ReturnType<typeof getStoryDataInclude>;
+}>;
+
+export interface StoriesPage {
+  stories: StoryData[];
+  nextCursor: string | null;
+}
+
+export interface StoryViewInfo {
+  viewCount: number;
+  isViewedByUser: boolean;
+  lastViewedAt?: Date;
+}
+
+export interface StoryMediaItem {
+  id: string;
+  type: "IMAGE" | "VIDEO";
+  url: string;
+  order: number;
+}

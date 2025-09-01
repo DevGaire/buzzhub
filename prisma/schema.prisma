@@ -33,6 +33,7 @@ model User {
   comments              Comment[]
   notes                 Note[]
   stories               Story[]
+  storyViews            StoryView[]
   receivedNotifications Notification[] @relation("Recipient")
   issuedNotifications   Notification[] @relation("Issuer")
   passwordResetTokens   PasswordResetToken[]
@@ -126,6 +127,7 @@ model Story {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   items     StoryMedia[]
+  views     StoryView[]
   expiresAt DateTime
   createdAt DateTime @default(now())
 
@@ -142,6 +144,19 @@ model StoryMedia {
 
   @@id([storyId, mediaId])
   @@map("story_media")
+}
+
+model StoryView {
+  id       String   @id @default(cuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  storyId  String
+  story    Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  viewedAt DateTime @default(now())
+
+  @@unique([userId, storyId])
+  @@index([storyId, viewedAt])
+  @@map("story_views")
 }
 
 model Bookmark {

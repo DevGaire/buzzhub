@@ -7,10 +7,13 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
+import { ComponentErrorBoundary } from "@/components/ErrorBoundary";
+import { LoadingSpinner, EmptyState } from "@/components/ui/loading-states";
+import { handleError } from "@/lib/error-handling";
 import UserAvatar from "@/components/UserAvatar";
 import useDebounce from "@/hooks/useDebounce";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Check, Loader2, SearchIcon, X } from "lucide-react";
+import { Check, SearchIcon, X, Users, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { UserResponse } from "stream-chat";
 import { DefaultStreamChatGenerics, useChatContext } from "stream-chat-react";
@@ -79,6 +82,7 @@ export default function NewChatDialog({
         },
         onError(error) {
             console.error("Error starting chat", error);
+            handleError(error, 'Start Chat');
             toast({
                 variant: "destructive",
                 description: "Error starting chat. Please try again.",
@@ -87,77 +91,85 @@ export default function NewChatDialog({
     });
 
     return (
-        <Dialog open onOpenChange={onOpenChange}>
-            <DialogContent className="bg-card p-0">
-                <DialogHeader className="px-6 pt-6">
-                    <DialogTitle>New chat</DialogTitle>
-                </DialogHeader>
-                <div>
-                    <div className="group relative">
-                        <SearchIcon className="absolute left-5 top-1/2 size-5 -translate-y-1/2 transform text-muted-foreground group-focus-within:text-primary" />
-                        <input
-                            placeholder="Search users..."
-                            className="h-12 w-full pe-4 ps-14 focus:outline-none"
-                            value={searchInput}
-                            onChange={(e) => setSearchInput(e.target.value)}
-                        />
-                    </div>
-                    {!!selectedUsers.length && (
-                        <div className="mt-4 flex flex-wrap gap-2 p-2">
-                            {selectedUsers.map((user) => (
-                                <SelectedUserTag
-                                    key={user.id}
-                                    user={user}
-                                    onRemove={() => {
-                                        setSelectedUsers((prev) =>
-                                            prev.filter((u) => u.id !== user.id),
-                                        );
-                                    }}
-                                />
-                            ))}
+        <ComponentErrorBoundary componentName="New Chat Dialog">
+            <Dialog open onOpenChange={onOpenChange}>
+                <DialogContent className="bg-card p-0">
+                    <DialogHeader className="px-6 pt-6">
+                        <DialogTitle>New chat</DialogTitle>
+                    </DialogHeader>
+                    <div>
+                        <div className="group relative">
+                            <SearchIcon className="absolute left-5 top-1/2 size-5 -translate-y-1/2 transform text-muted-foreground group-focus-within:text-primary" />
+                            <input
+                                placeholder="Search users..."
+                                className="h-12 w-full pe-4 ps-14 focus:outline-none"
+                                value={searchInput}
+                                onChange={(e) => setSearchInput(e.target.value)}
+                            />
                         </div>
-                    )}
-                    <hr />
-                    <div className="h-96 overflow-y-auto">
-                        {isSuccess &&
-                            data.users.map((user) => (
-                                <UserResult
-                                    key={user.id}
-                                    user={user}
-                                    selected={selectedUsers.some((u) => u.id === user.id)}
-                                    onClick={() => {
-                                        setSelectedUsers((prev) =>
-                                            prev.some((u) => u.id === user.id)
-                                                ? prev.filter((u) => u.id !== user.id)
-                                                : [...prev, user],
-                                        );
-                                    }}
+                        {!!selectedUsers.length && (
+                            <div className="mt-4 flex flex-wrap gap-2 p-2">
+                                {selectedUsers.map((user) => (
+                                    <SelectedUserTag
+                                        key={user.id}
+                                        user={user}
+                                        onRemove={() => {
+                                            setSelectedUsers((prev) =>
+                                                prev.filter((u) => u.id !== user.id),
+                                            );
+                                        }}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                        <hr />
+                        <div className="h-96 overflow-y-auto">
+                            {isSuccess &&
+                                data.users.map((user) => (
+                                    <UserResult
+                                        key={user.id}
+                                        user={user}
+                                        selected={selectedUsers.some((u) => u.id === user.id)}
+                                        onClick={() => {
+                                            setSelectedUsers((prev) =>
+                                                prev.some((u) => u.id === user.id)
+                                                    ? prev.filter((u) => u.id !== user.id)
+                                                    : [...prev, user],
+                                            );
+                                        }}
+                                    />
+                                ))}
+                            {isSuccess && !data.users.length && (
+                                <EmptyState
+                                    title="No users found"
+                                    description="Try searching with a different name"
+                                    className="my-6"
+                                    icon={<Users className="size-8" />}
                                 />
-                            ))}
-                        {isSuccess && !data.users.length && (
-                            <p className="my-3 text-center text-muted-foreground">
-                                No users found. Try a different name.
-                            </p>
-                        )}
-                        {isFetching && <Loader2 className="mx-auto my-3 animate-spin" />}
-                        {isError && (
-                            <p className="my-3 text-center text-destructive">
-                                An error occurred while loading users.
-                            </p>
-                        )}
+                            )}
+                            {isFetching && <LoadingSpinner className="mx-auto my-3" />}
+                            {isError && (
+                                <EmptyState
+                                    title="Failed to load users"
+                                    description="Please check your connection and try again"
+                                    className="my-6"
+                                    icon={<Users className="size-8" />}
+                                />
+                            )}
+                        </div>
                     </div>
-                </div>
-                <DialogFooter className="px-6 pb-6">
-                    <LoadingButton
-                        disabled={!selectedUsers.length}
-                        loading={mutation.isPending}
-                        onClick={() => mutation.mutate()}
-                    >
-                        Start chat
-                    </LoadingButton>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+                    <DialogFooter className="px-6 pb-6">
+                        <LoadingButton
+                            disabled={!selectedUsers.length}
+                            loading={mutation.isPending}
+                            onClick={() => mutation.mutate()}
+                        >
+                            Start chat
+                        </LoadingButton>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </ComponentErrorBoundary>
     );
 }
 

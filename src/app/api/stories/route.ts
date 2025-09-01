@@ -20,6 +20,13 @@ export async function GET() {
       include: {
         user: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
         items: { include: { media: true }, orderBy: { order: "asc" } },
+        views: {
+          where: { userId: user.id },
+          select: { userId: true, viewedAt: true },
+        },
+        _count: {
+          select: { views: true },
+        },
       },
       orderBy: { createdAt: "desc" },
       take: 50,
