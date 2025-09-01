@@ -7,10 +7,20 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import kyInstance from "@/lib/ky";
 import { StoryData } from "@/lib/types";
 import { formatRelativeDate } from "@/lib/utils";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, MoreHorizontal, Pause, Play, X } from "lucide-react";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
+import { ChevronLeft, ChevronRight, MoreHorizontal, Pause, Play, X, Trash2, Eye, Bookmark, Shield } from "lucide-react";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
+import StoryMediaFallback from "./StoryMediaFallback";
+import StoryViewersList from "./StoryViewersList";
+import StoryReplyInput from "./StoryReplyInput";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { toast } from "@/components/ui/use-toast";
 
 interface StoryViewerProps {
     stories: StoryData[];
@@ -32,6 +42,9 @@ export default function StoryViewer({
     const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
     const [progress, setProgress] = useState(0);
+    const [mediaError, setMediaError] = useState(false);
+    const [showViewersList, setShowViewersList] = useState(false);
+    const [isReplying, setIsReplying] = useState(false);
 
     const videoRef = useRef<HTMLVideoElement>(null);
     const timerRef = useRef<NodeJS.Timeout>();
@@ -42,19 +55,66 @@ export default function StoryViewer({
     const isVideo = currentMedia?.media.type === "VIDEO";
     const isLastStory = currentStoryIndex === stories.length - 1;
     const isLastMedia = currentMediaIndex === (currentStory?.items.length || 0) - 1;
+    const isOwnStory = currentStory?.user.id === user.id;
 
-    // Mark story as viewed
-    const markAsViewedMutation = useMutation({
-        mutationFn: (storyId: string) =>
-            kyInstance.post(`/api/stories/${storyId}/view`),
+    // Delete story mutation
+    const deleteStoryMutation = useMutation({
+        mutationFn: async (storyId: string) => {
+            await kyInstance.delete(`/api/stories/${storyId}`);
+        },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["stories"] });
+            toast({
+                description: "Story deleted successfully",
+            });
+            // Move to next story or close if it was the last one
+            if (isLastStory || stories.length === 1) {
+                onClose();
+            } else {
+                // Stay at the same index (which will now show the next story)
+                // or move back if we're at the end
+                if (currentStoryIndex >= stories.length - 1) {
+                    setCurrentStoryIndex(prev => Math.max(0, prev - 1));
+                }
+            }
+        },
+        onError: () => {
+            toast({
+                variant: "destructive",
+                description: "Failed to delete story",
+            });
         },
     });
 
+    const handleDeleteStory = () => {
+        if (currentStory && isOwnStory) {
+            // Pause the timer while confirming
+            setIsPaused(true);
+            
+            if (confirm("Are you sure you want to delete this story?")) {
+                deleteStoryMutation.mutate(currentStory.id);
+            } else {
+                // Resume if cancelled
+                setIsPaused(false);
+            }
+        }
+    };
+
+    // Mark story as viewed (silent, avoid global mutation toasts)
+    const markAsViewed = useCallback(async (storyId: string) => {
+        try {
+            await kyInstance.post(`/api/stories/${storyId}/view`);
+            await queryClient.invalidateQueries({ queryKey: ["stories"] });
+        } catch (e) {
+            // Silent fail; do not toast for background view tracking
+            console.warn("Failed to mark story as viewed", e);
+        }
+    }, [queryClient]);
+
     // Auto-advance timer
     const startTimer = useCallback(() => {
-        if (isPaused) return;
+        // Don't start timer if paused or replying
+        if (isPaused || isReplying) return;
 
         const duration = isVideo ? 15000 : 5000; // 15s for video, 5s for image
         let startTime = Date.now();
@@ -70,7 +130,7 @@ export default function StoryViewer({
         timerRef.current = setTimeout(() => {
             nextMedia();
         }, duration);
-    }, [isPaused, isVideo]);
+    }, [isPaused, isReplying, isVideo]);
 
     const clearTimers = useCallback(() => {
         if (timerRef.current) clearTimeout(timerRef.current);
@@ -124,24 +184,30 @@ export default function StoryViewer({
     // Mark current story as viewed
     useEffect(() => {
         if (currentStory && (currentStory as any).views && !(currentStory as any).views.some((v: any) => v.userId === user.id)) {
-            markAsViewedMutation.mutate(currentStory.id);
+            markAsViewed(currentStory.id);
         }
-    }, [currentStory, user.id, markAsViewedMutation]);
+    }, [currentStory, user.id, markAsViewed]);
 
-    // Reset media index when story changes
+    // Reset media index and error state when story changes
     useEffect(() => {
         setCurrentMediaIndex(0);
+        setMediaError(false);
         clearTimers();
     }, [currentStoryIndex, clearTimers]);
 
-    // Start timer when media changes or pause state changes
+    // Reset error state when media changes
     useEffect(() => {
-        if (isOpen && currentMedia) {
+        setMediaError(false);
+    }, [currentMediaIndex]);
+
+    // Start timer when media changes or pause/reply state changes
+    useEffect(() => {
+        if (isOpen && currentMedia && !isReplying) {
             clearTimers();
             startTimer();
         }
         return clearTimers;
-    }, [isOpen, currentMedia, isPaused, startTimer, clearTimers]);
+    }, [isOpen, currentMedia, isPaused, isReplying, startTimer, clearTimers]);
 
     // Cleanup on unmount
     useEffect(() => {
@@ -205,13 +271,29 @@ export default function StoryViewer({
                                 >
                                     {isPaused ? <Play className="size-3" /> : <Pause className="size-3" />}
                                 </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8 w-8 p-0 text-white hover:bg-white/20"
-                                >
-                                    <MoreHorizontal className="size-3" />
-                                </Button>
+                                {isOwnStory && (
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-8 w-8 p-0 text-white hover:bg-white/20"
+                                            >
+                                                <MoreHorizontal className="size-3" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end" className="bg-card">
+                                            <DropdownMenuItem
+                                                onClick={handleDeleteStory}
+                                                className="text-destructive focus:text-destructive"
+                                                disabled={deleteStoryMutation.isPending}
+                                            >
+                                                <Trash2 className="mr-2 size-4" />
+                                                Delete Story
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                )}
                                 <Button
                                     variant="ghost"
                                     size="sm"
@@ -225,12 +307,15 @@ export default function StoryViewer({
 
                         {/* Media content - Card format with proper scaling */}
                         <div className="relative h-full w-full overflow-hidden rounded-3xl">
-                            {isVideo ? (
+                            {mediaError ? (
+                                <StoryMediaFallback />
+                            ) : isVideo ? (
                                 <video
                                     ref={videoRef}
                                     src={currentMedia.media.url}
                                     className="h-full w-full object-cover"
                                     onLoadedData={handleVideoLoadedData}
+                                    onError={() => setMediaError(true)}
                                     muted
                                     playsInline
                                     style={{ objectPosition: 'center' }}
@@ -244,6 +329,7 @@ export default function StoryViewer({
                                     priority
                                     sizes="(max-width: 640px) 100vw, 380px"
                                     style={{ objectPosition: 'center' }}
+                                    onError={() => setMediaError(true)}
                                 />
                             )}
                         </div>
@@ -261,14 +347,38 @@ export default function StoryViewer({
                             aria-label="Next story"
                         />
 
-                        {/* Story viewers count (for own stories) */}
-                        {currentStory.user.id === user.id && (
-                            <div className="absolute bottom-4 left-4 z-30">
-                                <p className="text-xs text-white/70">
-                                    {(currentStory as any)._count?.views || 0} views
-                                </p>
-                            </div>
-                        )}
+                        {/* Bottom section - Reply input or Viewer count */}
+                        <div className="absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/80 to-transparent p-4">
+                            {isOwnStory ? (
+                                // Show viewer count for own stories
+                                <Button
+                                    variant="ghost"
+                                    className="w-full justify-start text-white hover:bg-white/10"
+                                    onClick={() => {
+                                        setIsPaused(true);
+                                        setShowViewersList(true);
+                                    }}
+                                >
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    <span className="text-sm">
+                                        {(currentStory as any)._count?.views || 0} {(currentStory as any)._count?.views === 1 ? 'view' : 'views'}
+                                    </span>
+                                </Button>
+                            ) : (
+                                // Show reply input for others' stories
+                                <StoryReplyInput
+                                    storyId={currentStory.id}
+                                    storyUserId={currentStory.user.id}
+                                    className="mt-2"
+                                    onFocusChange={setIsReplying}
+                                    onReplySuccess={() => {
+                                        setIsReplying(false);
+                                        // Optional: Move to next story after successful reply
+                                        // nextMedia();
+                                    }}
+                                />
+                            )}
+                        </div>
                     </div>
 
                     {/* Navigation arrows - Outside the card */}
@@ -293,6 +403,18 @@ export default function StoryViewer({
                     </Button>
                 </div>
             </DialogContent>
+            
+            {/* Viewer List Modal */}
+            {isOwnStory && (
+                <StoryViewersList
+                    storyId={currentStory.id}
+                    isOpen={showViewersList}
+                    onClose={() => {
+                        setShowViewersList(false);
+                        setIsPaused(false);
+                    }}
+                />
+            )}
         </Dialog>
     );
 }

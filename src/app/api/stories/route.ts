@@ -79,7 +79,38 @@ export async function POST(req: NextRequest) {
           },
         },
       },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            avatarUrl: true,
+          },
+        },
+      },
     });
+
+    // Send notifications to all followers
+    const followers = await prisma.follow.findMany({
+      where: { followingId: user.id },
+      select: { followerId: true },
+    });
+
+    if (followers.length > 0) {
+      // Create notifications for all followers
+      await prisma.notification.createMany({
+        data: followers.map((follower) => ({
+          issuerId: user.id,
+          recipientId: follower.followerId,
+          type: "STORY",
+          storyId: story.id,
+        })),
+      });
+
+      // You can also emit real-time notifications here if you have WebSocket/SSE setup
+      // For example: emitToFollowers(followers, { type: 'NEW_STORY', story });
+    }
 
     return Response.json({ id: story.id }, { status: 201 });
   } catch (e) {

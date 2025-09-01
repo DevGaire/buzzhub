@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["fullTextSearch"]
@@ -11,37 +5,38 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url       = env("POSTGRES_PRISMA_URL") // uses connection pooling
-  directUrl = env("POSTGRES_URL_NON_POOLING") // uses a direct connection
+  url       = env("POSTGRES_PRISMA_URL")
+  directUrl = env("POSTGRES_URL_NON_POOLING")
 }
 
 model User {
-  id                    String         @id
-  username              String         @unique
-  displayName           String
-  email                 String?        @unique
-  passwordHash          String?
-  googleId              String?        @unique
-  avatarUrl             String?
-  bio                   String?
-  sessions              Session[]
-  posts                 Post[]
-  following             Follow[]       @relation("Following")
-  followers             Follow[]       @relation("Followers")
-  likes                 Like[]
-  bookmarks             Bookmark[]
-  comments              Comment[]
-  notes                 Note[]
-  stories               Story[]
-  storyViews            StoryView[]
-  receivedNotifications Notification[] @relation("Recipient")
-  issuedNotifications   Notification[] @relation("Issuer")
-  passwordResetTokens   PasswordResetToken[]
+  id                      String                   @id
+  username                String                   @unique
+  displayName             String
+  email                   String?                  @unique
+  passwordHash            String?
+  googleId                String?                  @unique
+  avatarUrl               String?
+  bio                     String?
+  createdAt               DateTime                 @default(now())
+  emailVerifiedAt         DateTime?
+  bookmarks               Bookmark[]
+  comments                Comment[]
+  commentLikes            CommentLike[]
   emailVerificationTokens EmailVerificationToken[]
-  emailVerifiedAt       DateTime?
-  notificationSettings  NotificationSettings?
-
-  createdAt DateTime @default(now())
+  following               Follow[]                 @relation("Following")
+  followers               Follow[]                 @relation("Followers")
+  likes                   Like[]
+  notes                   Note[]
+  notificationSettings    NotificationSettings?
+  issuedNotifications     Notification[]           @relation("Issuer")
+  receivedNotifications   Notification[]           @relation("Recipient")
+  passwordResetTokens     PasswordResetToken[]
+  posts                   Post[]
+  sessions                Session[]
+  stories                 Story[]
+  storyViews              StoryView[]
+  storyHighlights         StoryHighlight[]
 
   @@map("users")
 }
@@ -57,8 +52,8 @@ model Session {
 
 model Follow {
   followerId  String
-  follower    User   @relation("Following", fields: [followerId], references: [id], onDelete: Cascade)
   followingId String
+  follower    User   @relation("Following", fields: [followerId], references: [id], onDelete: Cascade)
   following   User   @relation("Followers", fields: [followingId], references: [id], onDelete: Cascade)
 
   @@unique([followerId, followingId])
@@ -69,78 +64,95 @@ model Post {
   id                  String         @id @default(cuid())
   content             String
   userId              String
-  user                User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  attachments         Media[]
-  likes               Like[]
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  archived            Boolean        @default(false)
+  visibility          PostVisibility @default(PUBLIC)
   bookmarks           Bookmark[]
   comments            Comment[]
+  likes               Like[]
   linkedNotifications Notification[]
-
-  createdAt DateTime @default(now())
+  attachments         Media[]
+  user                User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("posts")
 }
 
 model Media {
-  id     String    @id @default(cuid())
-  postId String?
-  post   Post?     @relation(fields: [postId], references: [id], onDelete: SetNull)
-  type   MediaType
-  url    String
-  storyMedia StoryMedia[]
-
-  createdAt DateTime @default(now())
+  id              String           @id @default(cuid())
+  postId          String?
+  type            MediaType
+  url             String
+  createdAt       DateTime         @default(now())
+  post            Post?            @relation(fields: [postId], references: [id])
+  storyMedia      StoryMedia[]
+  storyHighlights StoryHighlight[]
 
   @@map("post_media")
 }
 
-enum MediaType {
-  IMAGE
-  VIDEO
+model Comment {
+  id        String         @id @default(cuid())
+  content   String
+  userId    String
+  postId    String
+  parentId  String?        // For replies - references parent comment
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  post      Post           @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent    Comment?       @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[]      @relation("CommentReplies")
+  likes     CommentLike[]
+
+  @@index([postId])
+  @@index([parentId])
+  @@map("comments")
 }
 
-model Comment {
-  id      String @id @default(cuid())
-  content String
-  userId  String
-  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  postId  String
-  post    Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+model CommentLike {
+  userId    String
+  commentId String
+  comment   Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-
-  @@map("comments")
+  @@unique([userId, commentId])
+  @@map("comment_likes")
 }
 
 model Like {
   userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   postId String
   post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, postId])
   @@map("likes")
 }
 
 model Story {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items     StoryMedia[]
-  views     StoryView[]
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  id            String         @id @default(cuid())
+  userId        String
+  expiresAt     DateTime
+  privacy       StoryPrivacy   @default(FOLLOWERS)
+  createdAt     DateTime       @default(now())
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items         StoryMedia[]
+  views         StoryView[]
+  notifications Notification[]
+  highlightItems HighlightItem[]
 
   @@index([userId, expiresAt])
+  @@index([privacy])
   @@map("stories")
 }
 
 model StoryMedia {
-  storyId String
-  story   Story  @relation(fields: [storyId], references: [id], onDelete: Cascade)
-  mediaId String
-  media   Media  @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  storyId  String
+  mediaId  String
   order   Int
+  media    Media  @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  story    Story  @relation(fields: [storyId], references: [id], onDelete: Cascade)
 
   @@id([storyId, mediaId])
   @@map("story_media")
@@ -149,10 +161,10 @@ model StoryMedia {
 model StoryView {
   id       String   @id @default(cuid())
   userId   String
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   storyId  String
-  story    Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
   viewedAt DateTime @default(now())
+  story    Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, storyId])
   @@index([storyId, viewedAt])
@@ -160,25 +172,24 @@ model StoryView {
 }
 
 model Bookmark {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  postId String
-  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
-
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
   createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, postId])
   @@map("bookmarks")
 }
 
 model NotificationSettings {
-  userId       String  @id
-  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  emailLikes   Boolean @default(true)
+  userId        String  @id
+  emailLikes    Boolean @default(true)
   emailComments Boolean @default(true)
-  emailFollows Boolean @default(true)
+  emailFollows  Boolean @default(true)
   emailMentions Boolean @default(true)
+  user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notification_settings")
 }
@@ -186,15 +197,16 @@ model NotificationSettings {
 model Notification {
   id          String           @id @default(cuid())
   recipientId String
-  recipient   User             @relation("Recipient", fields: [recipientId], references: [id], onDelete: Cascade)
   issuerId    String
-  issuer      User             @relation("Issuer", fields: [issuerId], references: [id], onDelete: Cascade)
   postId      String?
-  post        Post?            @relation(fields: [postId], references: [id], onDelete: Cascade)
+  storyId     String?
   type        NotificationType
   read        Boolean          @default(false)
-
-  createdAt DateTime @default(now())
+  createdAt   DateTime         @default(now())
+  issuer      User             @relation("Issuer", fields: [issuerId], references: [id], onDelete: Cascade)
+  post        Post?            @relation(fields: [postId], references: [id], onDelete: Cascade)
+  story       Story?           @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  recipient   User             @relation("Recipient", fields: [recipientId], references: [id], onDelete: Cascade)
 
   @@map("notifications")
 }
@@ -203,9 +215,9 @@ model PasswordResetToken {
   id        String   @id @default(cuid())
   tokenHash String   @unique
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("password_reset_tokens")
@@ -215,9 +227,9 @@ model EmailVerificationToken {
   id        String   @id @default(cuid())
   tokenHash String   @unique
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("email_verification_tokens")
@@ -226,13 +238,18 @@ model EmailVerificationToken {
 model Note {
   id        String   @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   content   String   @db.VarChar(60)
   expiresAt DateTime
   createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, expiresAt])
   @@map("notes")
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
 }
 
 enum NotificationType {
@@ -240,4 +257,48 @@ enum NotificationType {
   FOLLOW
   COMMENT
   MENTION
+  REPLY
+  COMMENT_LIKE
+  STORY
+}
+
+model StoryHighlight {
+  id           String          @id @default(cuid())
+  userId       String
+  title        String
+  coverMediaId String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coverMedia   Media?          @relation(fields: [coverMediaId], references: [id], onDelete: SetNull)
+  items        HighlightItem[]
+
+  @@index([userId])
+  @@map("story_highlights")
+}
+
+model HighlightItem {
+  id          String         @id @default(cuid())
+  highlightId String
+  storyId     String
+  order       Int            @default(0)
+  addedAt     DateTime       @default(now())
+  highlight   StoryHighlight @relation(fields: [highlightId], references: [id], onDelete: Cascade)
+  story       Story          @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@unique([highlightId, storyId])
+  @@index([highlightId])
+  @@map("highlight_items")
+}
+
+enum PostVisibility {
+  PUBLIC
+  FOLLOWERS
+  ONLY_ME
+}
+
+enum StoryPrivacy {
+  PUBLIC
+  FOLLOWERS
+  CLOSE_FRIENDS
 }

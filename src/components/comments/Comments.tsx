@@ -8,9 +8,10 @@ import CommentInput from "./CommentInput";
 
 interface CommentsProps {
     post: PostData;
+    initialExpandedCommentId?: string | null;
 }
 
-export default function Comments({ post }: CommentsProps) {
+export default function Comments({ post, initialExpandedCommentId }: CommentsProps) {
     const { data, fetchNextPage, hasNextPage, isFetching, status } =
         useInfiniteQuery({
             queryKey: ["comments", post.id],
@@ -55,7 +56,12 @@ export default function Comments({ post }: CommentsProps) {
             )}
             <div className="divide-y">
                 {comments.map((comment) => (
-                    <Comment key={comment.id} comment={comment} />
+                    <Comment 
+                        key={comment.id} 
+                        comment={comment} 
+                        postId={post.id}
+                        initialExpanded={comment.id === initialExpandedCommentId}
+                    />
                 ))}
             </div>
         </div>

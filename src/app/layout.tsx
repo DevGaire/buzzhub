@@ -1,5 +1,6 @@
 import { Toaster } from "@/components/ui/toaster";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { cn } from "@/lib/utils";
 import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
 import type { Metadata } from "next";
 import { ThemeProvider } from "next-themes";
@@ -7,6 +8,8 @@ import localFont from "next/font/local";
 import { extractRouterConfig } from "uploadthing/server";
 import { fileRouter } from "./api/uploadthing/core";
 import "./globals.css";
+import "stream-chat-react/dist/css/v2/index.css";
+import "./stream-chat-overrides.css";
 import ReactQueryProvider from "./ReactQueryProvider";
 
 const geistSans = localFont({
@@ -34,7 +37,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <link rel="icon" href="./favicon.ico" sizes="any" />
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+      <body className={cn(geistSans.variable, geistMono.variable, "threads")}>
         <NextSSRPlugin routerConfig={extractRouterConfig(fileRouter)} />
         <ErrorBoundary>
           <ReactQueryProvider>

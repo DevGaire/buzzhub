@@ -17,13 +17,13 @@ export default function MessagesButton({ initialState }: MessagesButtonProps) {
         queryFn: () =>
             kyInstance.get("/api/messages/unread-count").json<MessageCountInfo>(),
         initialData: initialState,
-        refetchInterval: 60 * 1000,
+        refetchInterval: 30 * 1000, // Check every 30 seconds
     });
 
     return (
         <Button
             variant="ghost"
-            className="flex items-center justify-start gap-3"
+            className="flex items-center justify-start gap-3 relative"
             title="Messages"
             asChild
         >
@@ -31,8 +31,8 @@ export default function MessagesButton({ initialState }: MessagesButtonProps) {
                 <div className="relative">
                     <Mail />
                     {!!data.unreadCount && (
-                        <span className="absolute -right-1 -top-1 rounded-full bg-primary px-1 text-xs font-medium tabular-nums text-primary-foreground">
-                            {data.unreadCount}
+                        <span className="absolute -right-1 -top-1 flex min-w-[20px] items-center justify-center rounded-full bg-green-500 px-1.5 py-0.5 text-xs font-bold tabular-nums text-white shadow-lg animate-pulse">
+                            {data.unreadCount > 99 ? "99+" : `+${data.unreadCount}`}
                         </span>
                     )}
                 </div>

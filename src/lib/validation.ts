@@ -20,9 +20,18 @@ export const loginSchema = z.object({
 
 export type LoginValues = z.infer<typeof loginSchema>;
 
+export const postVisibilitySchema = z.enum(["public", "followers", "only_me"]);
+
 export const createPostSchema = z.object({
   content: requiredString,
   mediaIds: z.array(z.string()).max(5, "Cannot have more than 5 attachments"),
+  visibility: postVisibilitySchema.default("public"),
+});
+
+export const updatePostSchema = z.object({
+  content: requiredString,
+  visibility: postVisibilitySchema.optional(),
+  archived: z.boolean().optional(),
 });
 
 export const updateUserProfileSchema = z.object({
@@ -33,6 +42,10 @@ export const updateUserProfileSchema = z.object({
 export type UpdateUserProfileValues = z.infer<typeof updateUserProfileSchema>;
 
 export const createCommentSchema = z.object({
+  content: requiredString,
+});
+
+export const updateCommentSchema = z.object({
   content: requiredString,
 });
 

@@ -64,11 +64,22 @@ export default function MessageReactions({
     }, []);
 
     const handleReaction = (emoji: string) => {
+        // Check if user has already reacted with this emoji
         const existingReaction = reactions.find(r => r.emoji === emoji);
-
+        
         if (existingReaction?.hasUserReacted) {
+            // If clicking the same emoji, remove it
             onRemoveReaction(emoji);
         } else {
+            // Check if user has any other reaction on this message
+            const userCurrentReaction = reactions.find(r => r.hasUserReacted);
+            
+            if (userCurrentReaction) {
+                // Remove the existing reaction first
+                onRemoveReaction(userCurrentReaction.emoji);
+            }
+            
+            // Add the new reaction
             onReact(emoji);
         }
 
@@ -117,11 +128,17 @@ export default function MessageReactions({
                     >
                         {QUICK_REACTIONS.map((reaction) => {
                             const Icon = reaction.icon;
+                            const isCurrentReaction = reactions.find(r => r.hasUserReacted && r.emoji === reaction.emoji);
                             return (
                                 <button
                                     key={reaction.emoji}
                                     onClick={() => handleQuickReact(reaction.emoji)}
-                                    className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-muted transition-colors"
+                                    className={cn(
+                                        "flex items-center justify-center w-8 h-8 rounded-full transition-colors",
+                                        isCurrentReaction 
+                                            ? "bg-blue-100 dark:bg-blue-900 ring-1 ring-blue-300" 
+                                            : "hover:bg-muted"
+                                    )}
                                     title={reaction.label}
                                 >
                                     {Icon ? (
@@ -152,15 +169,24 @@ export default function MessageReactions({
                         className="absolute bottom-full left-0 mb-2 p-3 bg-card border rounded-lg shadow-lg z-50 animate-in slide-in-from-bottom-2"
                     >
                         <div className="grid grid-cols-8 gap-1 max-w-64">
-                            {EXTENDED_EMOJIS.map((emoji) => (
-                                <button
-                                    key={emoji}
-                                    onClick={() => handleQuickReact(emoji)}
-                                    className="flex items-center justify-center w-8 h-8 rounded hover:bg-muted transition-colors text-lg"
-                                >
-                                    {emoji}
-                                </button>
-                            ))}
+                            {EXTENDED_EMOJIS.map((emoji) => {
+                                const isCurrentReaction = reactions.find(r => r.hasUserReacted && r.emoji === emoji);
+                                return (
+                                    <button
+                                        key={emoji}
+                                        onClick={() => handleQuickReact(emoji)}
+                                        className={cn(
+                                            "flex items-center justify-center w-8 h-8 rounded transition-colors text-lg",
+                                            isCurrentReaction 
+                                                ? "bg-blue-100 dark:bg-blue-900 ring-1 ring-blue-300" 
+                                                : "hover:bg-muted"
+                                        )}
+                                        title={isCurrentReaction ? "Remove reaction" : "React with " + emoji}
+                                    >
+                                        {emoji}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
                 )}
@@ -192,10 +218,11 @@ export default function MessageReactions({
 // Quick reaction button for message hover
 interface QuickReactButtonProps {
     onReact: (emoji: string) => void;
+    currentUserReaction?: string;
     className?: string;
 }
 
-export function QuickReactButton({ onReact, className }: QuickReactButtonProps) {
+export function QuickReactButton({ onReact, currentUserReaction, className }: QuickReactButtonProps) {
     const [showReactions, setShowReactions] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
 

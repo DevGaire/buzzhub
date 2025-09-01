@@ -1,5 +1,7 @@
 "use client";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Menu, Search } from "lucide-react";
 import { useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 const MessageSearch = dynamic(() => import("./MessageSearch"), { ssr: false });
@@ -29,6 +31,20 @@ export default function ChatChannel({ open, openSidebar }: ChatChannelProps) {
     return (
         <ComponentErrorBoundary componentName="Chat Channel">
             <div className={cn("relative w-full md:block h-full min-h-0", !open && "hidden")}>
+                {open && (
+                  <>
+                    <div className="absolute left-2 top-2 z-10 md:hidden">
+                      <Button size="icon" variant="ghost" onClick={openSidebar} title="Open sidebar">
+                        <Menu className="size-5" />
+                      </Button>
+                    </div>
+                    <div className="absolute right-2 top-2 z-10">
+                      <Button size="icon" variant="ghost" onClick={handleOpenSearch} title="Search messages">
+                        <Search className="size-5" />
+                      </Button>
+                    </div>
+                  </>
+                )}
                 {open ? (
                 <div className="h-full min-h-0 flex flex-col">
                 <Channel>
@@ -52,3 +68,5 @@ export default function ChatChannel({ open, openSidebar }: ChatChannelProps) {
         </ComponentErrorBoundary>
     );
 }
+
+

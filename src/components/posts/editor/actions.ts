@@ -8,17 +8,20 @@ import { createPostSchema } from "@/lib/validation";
 export async function submitPost(input: {
   content: string;
   mediaIds: string[];
+  visibility?: "public" | "followers" | "only_me";
 }) {
   const { user } = await validateRequest();
 
   if (!user) throw new Error("Unauthorized");
 
-  const { content, mediaIds } = createPostSchema.parse(input);
+  const { content, mediaIds, visibility } = createPostSchema.parse(input as any);
+  const mappedVisibility = visibility === "followers" ? "FOLLOWERS" : visibility === "only_me" ? "ONLY_ME" : "PUBLIC";
 
   const newPost = await prisma.post.create({
     data: {
       content,
       userId: user.id,
+      visibility: mappedVisibility as any,
       attachments: {
         connect: mediaIds.map((id) => ({ id })),
       },

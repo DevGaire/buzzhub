@@ -51,6 +51,11 @@ export function getPostDataInclude(loggedInUserId: string) {
         userId: true,
       },
     },
+    comments: {
+      include: getCommentDataInclude(loggedInUserId),
+      orderBy: { createdAt: "desc" } as const,
+      take: 1,
+    },
     _count: {
       select: {
         likes: true,
@@ -80,6 +85,15 @@ export function getCommentDataInclude(loggedInUserId: string) {
 export type CommentData = Prisma.CommentGetPayload<{
   include: ReturnType<typeof getCommentDataInclude>;
 }>;
+
+// Extended comment data type with likes for use in components
+export type CommentDataWithLikes = CommentData & {
+  likes?: { userId: string }[];
+  _count?: {
+    likes: number;
+    replies: number;
+  };
+};
 
 export interface CommentsPage {
   comments: CommentData[];

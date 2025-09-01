@@ -9,10 +9,18 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/use-toast";
 import kyInstance from "@/lib/ky";
+import { cn } from "@/lib/utils";
 import { CreateStoryValues, createStorySchema } from "@/lib/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Upload, X } from "lucide-react";
+import { Loader2, Upload, X, Globe, Users, UserCheck } from "lucide-react";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import Image from "next/image";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -35,6 +43,9 @@ export default function StoryCreateModal({ isOpen, onClose }: StoryCreateModalPr
     const queryClient = useQueryClient();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
+    const [separateStories, setSeparateStories] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
+    const [privacy, setPrivacy] = useState<"PUBLIC" | "FOLLOWERS" | "CLOSE_FRIENDS">("FOLLOWERS");
 
     const form = useForm<CreateStoryValues>({
         resolver: zodResolver(createStorySchema),
@@ -63,7 +74,26 @@ export default function StoryCreateModal({ isOpen, onClose }: StoryCreateModalPr
                 }))
             ]);
             
+            // Initialize progress for each file
+            const initialProgress: Record<string, number> = {};
+            renamedFiles.forEach(file => {
+                initialProgress[file.name] = 0;
+            });
+            setUploadProgress(prev => ({ ...prev, ...initialProgress }));
+            
             return renamedFiles;
+        },
+        onUploadProgress: (progress: number) => {
+            // Update progress for all uploading files
+            setUploadProgress(prev => {
+                const newProgress = { ...prev };
+                Object.keys(newProgress).forEach(key => {
+                    if (prev[key] < 100) {
+                        newProgress[key] = progress;
+                    }
+                });
+                return newProgress;
+            });
         },
         onClientUploadComplete: (res) => {
             // Update files with mediaId
@@ -139,7 +169,7 @@ export default function StoryCreateModal({ isOpen, onClose }: StoryCreateModalPr
         const videoCount = [...mediaFiles, ...validFiles].filter(f => 
             f.type === "video" || f.type?.startsWith("video/")
         ).length;
-        if (videoCount > 1) {
+        if (!separateStories && videoCount > 1) {
             toast({
                 variant: "destructive",
                 description: "Maximum 1 video allowed per story",
@@ -177,6 +207,29 @@ export default function StoryCreateModal({ isOpen, onClose }: StoryCreateModalPr
         
         const mediaIds = completedFiles.map(f => f.mediaId!); // Non-null assertion since we filtered
         
+        if (separateStories) {
+            let success = 0;
+            for (const id of mediaIds) {
+                try {
+                    await kyInstance.post("/api/stories", { json: { mediaIds: [id] } });
+                    success++;
+                } catch (e) {
+                    console.error("Failed to create story for media:", id, e);
+                }
+            }
+            try {
+                await queryClient.invalidateQueries({ queryKey: ["stories"] });
+            } catch {}
+            if (success > 0) {
+                toast({ description: `Created ${success} ${success > 1 ? "stories" : "story"}!` });
+            }
+            if (success !== mediaIds.length) {
+                toast({ variant: "destructive", description: `${mediaIds.length - success} failed. Please try again.` });
+            }
+            handleClose();
+            return;
+        }
+        
         try {
             await createStoryMutation.mutateAsync({ mediaIds });
         } catch (error) {
@@ -192,6 +245,8 @@ export default function StoryCreateModal({ isOpen, onClose }: StoryCreateModalPr
         // Clean up previews
         mediaFiles.forEach(file => URL.revokeObjectURL(file.preview));
         setMediaFiles([]);
+        setUploadProgress({});
+        setSeparateStories(false);
         form.reset();
         onClose();
     };
@@ -241,7 +296,7 @@ export default function StoryCreateModal({ isOpen, onClose }: StoryCreateModalPr
                             <h3 className="font-medium">Selected Media</h3>
                             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                                 {mediaFiles.map((mediaFile, index) => (
-                                    <div key={index} className={`relative aspect-square overflow-hidden rounded-lg ${mediaFile.isUploading ? 'opacity-50' : ''}`}>
+                                    <div key={index} className={cn("relative aspect-square overflow-hidden rounded-lg", mediaFile.isUploading && "opacity-50")}>
                                         {mediaFile.type === "image" ? (
                                             <Image
                                                 src={mediaFile.preview}
@@ -257,8 +312,15 @@ export default function StoryCreateModal({ isOpen, onClose }: StoryCreateModalPr
                                             />
                                         )}
                                         {mediaFile.isUploading && (
-                                            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                                                <Loader2 className="size-6 animate-spin text-white" />
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50">
+                                                <Loader2 className="size-6 animate-spin text-white mb-2" />
+                                                <span className="text-xs text-white font-medium">Uploading...</span>
+                                                <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/30">
+                                                    <div 
+                                                        className="h-full bg-white transition-all duration-300"
+                                                        style={{ width: `${uploadProgress[mediaFile.file.name] || 0}%` }}
+                                                    />
+                                                </div>
                                             </div>
                                         )}
                                         {!mediaFile.isUploading && (
@@ -280,23 +342,38 @@ export default function StoryCreateModal({ isOpen, onClose }: StoryCreateModalPr
                     )}
 
                     {/* Actions */}
-                    <div className="flex justify-end gap-3">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={handleClose}
-                            disabled={isProcessing}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            type="button"
-                            onClick={handleSubmit}
-                            disabled={!canSubmit}
-                        >
-                            {(isProcessing || hasUploadingFiles) && <Loader2 className="mr-2 size-4 animate-spin" />}
-                            {hasUploadingFiles ? "Uploading..." : "Create Story"}
-                        </Button>
+                    <div className="flex items-center justify-between gap-3">
+                        <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <input
+                                type="checkbox"
+                                className="h-4 w-4"
+                                checked={separateStories}
+                                onChange={(e) => setSeparateStories(e.target.checked)}
+                            />
+                            Post as separate stories
+                        </label>
+                        <div className="flex gap-3">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleClose}
+                                disabled={isProcessing}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="button"
+                                onClick={handleSubmit}
+                                disabled={!canSubmit}
+                            >
+                                {(isProcessing || hasUploadingFiles) && <Loader2 className="mr-2 size-4 animate-spin" />}
+                                {hasUploadingFiles
+                                    ? "Uploading..."
+                                    : separateStories && mediaFiles.length > 1
+                                        ? "Create Stories"
+                                        : "Create Story"}
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </DialogContent>

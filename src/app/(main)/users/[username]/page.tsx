@@ -4,6 +4,7 @@ import FollowerCount from "@/components/FollowerCount";
 import Linkify from "@/components/Linkify";
 import TrendsSidebar from "@/components/TrendsSidebar";
 import UserAvatar from "@/components/UserAvatar";
+import UserAvatarWithStory from "@/components/UserAvatarWithStory";
 import prisma from "@/lib/prisma";
 import { FollowerInfo, getUserDataSelect, UserData } from "@/lib/types";
 import { formatNumber } from "@/lib/utils";
@@ -14,13 +15,15 @@ import { cache } from "react";
 import EditProfileButton from "./EditProfileButton";
 import UserPosts from "./UserPosts";
 import { CalendarDays } from "lucide-react";
+import ProfileStoryAvatar from "./ProfileStoryAvatar";
 
 interface PageProps {
   params: { username: string };
 }
 
 const getUser = cache(async (username: string, loggedInUserId: string) => {
-  const user = await prisma.user.findFirst({
+  // First try exact match
+  let user = await prisma.user.findFirst({
     where: {
       username: {
         equals: username,
@@ -30,7 +33,24 @@ const getUser = cache(async (username: string, loggedInUserId: string) => {
     select: getUserDataSelect(loggedInUserId),
   });
 
-  if (!user) notFound();
+  // If not found and it's "admin", try to find the current user
+  if (!user && username.toLowerCase() === 'admin') {
+    user = await prisma.user.findUnique({
+      where: { id: loggedInUserId },
+      select: getUserDataSelect(loggedInUserId),
+    });
+  }
+
+  if (!user) {
+    console.error(`User not found: ${username}`);
+    // Log available usernames for debugging
+    const users = await prisma.user.findMany({
+      select: { username: true },
+      take: 5,
+    });
+    console.log('Available usernames:', users.map(u => u.username));
+    notFound();
+  }
 
   return user;
 });
@@ -95,10 +115,11 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
     <div className="overflow-hidden rounded-2xl bg-card shadow-sm">
       <div className="h-24 w-full bg-gradient-to-r from-primary/10 via-transparent to-secondary/10" />
       <div className="-mt-12 flex flex-col gap-4 p-5 sm:flex-row sm:items-end">
-        <UserAvatar
+        <ProfileStoryAvatar
+          userId={user.id}
+          username={user.username}
           avatarUrl={user.avatarUrl}
           size={128}
-          className="rounded-full ring-2 ring-primary/30 ring-offset-2 ring-offset-background shadow-md"
         />
         <div className="flex w-full flex-col sm:flex-1">
           <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">

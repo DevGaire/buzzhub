@@ -11,7 +11,7 @@ import StarterKit from "@tiptap/starter-kit";
 import { useDropzone } from "@uploadthing/react";
 import { ImageIcon, Loader2, X } from "lucide-react";
 import Image from "next/image";
-import { ClipboardEvent, useRef } from "react";
+import { ClipboardEvent, useEffect, useRef, useState } from "react";
 import { useSubmitPostMutation } from "./mutations";
 import "./styles.css";
 import useMediaUpload, { Attachment } from "./useMediaUpload";
@@ -20,6 +20,10 @@ export default function PostEditor() {
   const { user } = useSession();
 
   const mutation = useSubmitPostMutation();
+  const [expanded, setExpanded] = useState(false);
+  const [visibility, setVisibility] = useState<"public" | "followers" | "only_me">("public");
+  const [altTextByName, setAltTextByName] = useState<Record<string, string>>({});
+  const [attachmentOrder, setAttachmentOrder] = useState<string[]>([]);
 
   const {
     startUpload,
@@ -31,10 +35,23 @@ export default function PostEditor() {
   } = useMediaUpload();
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop: startUpload,
+    onDrop: (files) => {
+      setExpanded(true);
+      startUpload(files);
+    },
   });
 
   const { onClick, ...rootProps } = getRootProps();
+
+  // Keep a stable order for attachments to allow reordering locally
+  useEffect(() => {
+    const names = attachments.map((a) => a.file.name);
+    setAttachmentOrder((prev) => {
+      const existing = prev.filter((n) => names.includes(n));
+      const newOnes = names.filter((n) => !existing.includes(n));
+      return [...existing, ...newOnes];
+    });
+  }, [attachments]);
 
   const editor = useEditor({
     extensions: [
@@ -55,11 +72,17 @@ export default function PostEditor() {
       blockSeparator: "\n",
     }) || "";
 
+  const handleFilesSelected = (files: File[]) => {
+    setExpanded(true);
+    startUpload(files);
+  };
+
   function onSubmit() {
     mutation.mutate(
       {
         content: input,
         mediaIds: attachments.map((a) => a.mediaId).filter(Boolean) as string[],
+        visibility,
       },
       {
         onSuccess: () => {
@@ -77,48 +100,136 @@ export default function PostEditor() {
     startUpload(files);
   }
 
+  const firstName = (user.displayName || "").split(" ")[0] || user.username || "";
+  const collapsedPlaceholder = `What's on your mind${firstName ? ", " + firstName : ""}?`;
+
   return (
-    <div className="flex flex-col gap-5 rounded-2xl bg-card p-5 shadow-sm">
-      <div className="flex gap-5">
-        <UserAvatar avatarUrl={user.avatarUrl} className="hidden sm:inline" />
-        <div {...rootProps} className="w-full">
-          <EditorContent
-            editor={editor}
-            className={cn(
-              "max-h-[20rem] w-full overflow-y-auto rounded-2xl bg-background px-5 py-3",
-              isDragActive && "outline-dashed",
-            )}
-            onPaste={onPaste}
-          />
-          <input {...getInputProps()} />
+    <div className="rounded-2xl bg-card shadow-sm">
+      {!expanded ? (
+        <div className="p-4">
+          <div className="flex items-center gap-3">
+            <UserAvatar avatarUrl={user.avatarUrl} />
+            <button
+              onClick={() => setExpanded(true)}
+              className="flex-1 rounded-full border bg-background/70 px-4 py-2 text-left text-sm text-muted-foreground hover:bg-background"
+            >
+              {collapsedPlaceholder}
+            </button>
+          </div>
+          <div className="mt-3 flex items-center justify-between border-t pt-3">
+            <div className="flex items-center gap-2">
+              <AddAttachmentsButton
+                onFilesSelected={handleFilesSelected}
+                disabled={isUploading || attachments.length >= 5}
+                showLabel
+              />
+              <Button variant="ghost" size="sm" disabled className="h-8 gap-2 text-muted-foreground">
+                <span className="inline-block size-5 rounded-full bg-muted" />
+                <span className="text-xs">Feeling/Activity</span>
+              </Button>
+            </div>
+          </div>
         </div>
-      </div>
-      {!!attachments.length && (
-        <AttachmentPreviews
-          attachments={attachments}
-          removeAttachment={removeAttachment}
-        />
+      ) : (
+        <div className="p-4">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-3 min-w-0">
+              <UserAvatar avatarUrl={user.avatarUrl} />
+              <div className="text-sm min-w-0">
+                <div className="font-medium truncate">{user.displayName}</div>
+                <div className="text-muted-foreground">Share something new</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <select
+                aria-label="Post visibility"
+                value={visibility}
+                onChange={(e) => setVisibility(e.target.value as any)}
+                className="h-8 rounded-md border bg-background px-2 text-xs"
+                title="Visibility"
+              >
+                <option value="public">Public</option>
+                <option value="followers">Followers</option>
+                <option value="only_me">Only me</option>
+              </select>
+              <Button variant="ghost" size="icon" onClick={() => { setExpanded(false); editor?.commands.clearContent(); resetMediaUploads(); }} title="Close">
+                <X className="size-5" />
+              </Button>
+            </div>
+          </div>
+          <div {...rootProps}>
+            <EditorContent
+              editor={editor}
+              className={cn(
+                "max-h-[20rem] w-full overflow-y-auto rounded-2xl border bg-background px-5 py-3",
+                isDragActive && "outline-dashed",
+              )}
+              onPaste={onPaste}
+              onKeyDown={(e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                  e.preventDefault();
+                  if (input.trim() && !isUploading) onSubmit();
+                }
+              }}
+            />
+            <input {...getInputProps()} />
+          </div>
+          {!!attachments.length && (
+            <div className="mt-3">
+              <AttachmentPreviews
+                attachments={attachments}
+                removeAttachment={(name) => {
+                  setAttachmentOrder((prev) => prev.filter((n) => n !== name));
+                  const { [name]: _, ...rest } = altTextByName;
+                  setAltTextByName(rest);
+                  removeAttachment(name);
+                }}
+                order={attachmentOrder}
+                onMove={(name, dir) => {
+                  setAttachmentOrder((prev) => {
+                    const idx = prev.indexOf(name);
+                    if (idx === -1) return prev;
+                    const next = [...prev];
+                    const swapWith = dir === "up" ? idx - 1 : idx + 1;
+                    if (swapWith < 0 || swapWith >= next.length) return prev;
+                    [next[idx], next[swapWith]] = [next[swapWith], next[idx]];
+                    return next;
+                  });
+                }}
+                altTextByName={altTextByName}
+                onAltTextChange={(name, val) => setAltTextByName((s) => ({ ...s, [name]: val }))}
+              />
+            </div>
+          )}
+          <div className="mt-3 flex items-center justify-between border-t pt-3">
+            <div className="flex items-center gap-2">
+              {isUploading && (
+                <div className="mr-2 flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>{uploadProgress ?? 0}%</span>
+                  <Loader2 className="size-4 animate-spin text-primary" />
+                </div>
+              )}
+              <AddAttachmentsButton
+                onFilesSelected={handleFilesSelected}
+                disabled={isUploading || attachments.length >= 5}
+                showLabel
+              />
+              <Button variant="ghost" size="sm" disabled className="h-8 gap-2 text-muted-foreground">
+                <span className="inline-block size-5 rounded-full bg-muted" />
+                <span className="text-xs">Feeling/Activity</span>
+              </Button>
+            </div>
+            <LoadingButton
+              onClick={onSubmit}
+              loading={mutation.isPending}
+              disabled={!input.trim() || isUploading}
+              className="min-w-20"
+            >
+              Post
+            </LoadingButton>
+          </div>
+        </div>
       )}
-      <div className="flex items-center justify-end gap-3">
-        {isUploading && (
-          <>
-            <span className="text-sm">{uploadProgress ?? 0}%</span>
-            <Loader2 className="size-5 animate-spin text-primary" />
-          </>
-        )}
-        <AddAttachmentsButton
-          onFilesSelected={startUpload}
-          disabled={isUploading || attachments.length >= 5}
-        />
-        <LoadingButton
-          onClick={onSubmit}
-          loading={mutation.isPending}
-          disabled={!input.trim() || isUploading}
-          className="min-w-20"
-        >
-          Post
-        </LoadingButton>
-      </div>
     </div>
   );
 }
@@ -126,11 +237,13 @@ export default function PostEditor() {
 interface AddAttachmentsButtonProps {
   onFilesSelected: (files: File[]) => void;
   disabled: boolean;
+  showLabel?: boolean;
 }
 
 function AddAttachmentsButton({
   onFilesSelected,
   disabled,
+  showLabel,
 }: AddAttachmentsButtonProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -138,12 +251,13 @@ function AddAttachmentsButton({
     <>
       <Button
         variant="ghost"
-        size="icon"
-        className="text-primary hover:text-primary"
+        size={showLabel ? "sm" : "icon"}
+        className={cn("text-primary hover:text-primary", showLabel && "h-8 gap-2")}
         disabled={disabled}
         onClick={() => fileInputRef.current?.click()}
       >
-        <ImageIcon size={20} />
+        <ImageIcon size={18} />
+        {showLabel && <span className="text-xs">Photo/Video</span>}
       </Button>
       <input
         type="file"
@@ -166,12 +280,21 @@ function AddAttachmentsButton({
 interface AttachmentPreviewsProps {
   attachments: Attachment[];
   removeAttachment: (fileName: string) => void;
+  order: string[];
+  onMove: (fileName: string, dir: "up" | "down") => void;
+  altTextByName: Record<string, string>;
+  onAltTextChange: (fileName: string, val: string) => void;
 }
 
 function AttachmentPreviews({
   attachments,
   removeAttachment,
+  order,
+  onMove,
+  altTextByName,
+  onAltTextChange,
 }: AttachmentPreviewsProps) {
+  const sorted = [...attachments].sort((a, b) => order.indexOf(a.file.name) - order.indexOf(b.file.name));
   return (
     <div
       className={cn(
@@ -179,10 +302,16 @@ function AttachmentPreviews({
         attachments.length > 1 && "sm:grid sm:grid-cols-2",
       )}
     >
-      {attachments.map((attachment) => (
+      {sorted.map((attachment, idx) => (
         <AttachmentPreview
           key={attachment.file.name}
           attachment={attachment}
+          canMoveUp={idx > 0}
+          canMoveDown={idx < sorted.length - 1}
+          onMoveUp={() => onMove(attachment.file.name, "up")}
+          onMoveDown={() => onMove(attachment.file.name, "down")}
+          altText={altTextByName[attachment.file.name] || ""}
+          onAltTextChange={(val) => onAltTextChange(attachment.file.name, val)}
           onRemoveClick={() => removeAttachment(attachment.file.name)}
         />
       ))}
@@ -193,11 +322,23 @@ function AttachmentPreviews({
 interface AttachmentPreviewProps {
   attachment: Attachment;
   onRemoveClick: () => void;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  altText: string;
+  onAltTextChange: (val: string) => void;
 }
 
 function AttachmentPreview({
   attachment: { file, mediaId, isUploading },
   onRemoveClick,
+  canMoveUp,
+  canMoveDown,
+  onMoveUp,
+  onMoveDown,
+  altText,
+  onAltTextChange,
 }: AttachmentPreviewProps) {
   const src = URL.createObjectURL(file);
 
@@ -205,6 +346,26 @@ function AttachmentPreview({
     <div
       className={cn("relative mx-auto size-fit", isUploading && "opacity-50")}
     >
+      <div className="absolute left-2 top-2 z-10 flex gap-1">
+        <button
+          type="button"
+          aria-label="Move up"
+          disabled={!canMoveUp}
+          onClick={onMoveUp}
+          className={cn("rounded bg-background/80 px-2 py-1 text-xs shadow", !canMoveUp && "opacity-50")}
+        >
+          ↑
+        </button>
+        <button
+          type="button"
+          aria-label="Move down"
+          disabled={!canMoveDown}
+          onClick={onMoveDown}
+          className={cn("rounded bg-background/80 px-2 py-1 text-xs shadow", !canMoveDown && "opacity-50")}
+        >
+          ↓
+        </button>
+      </div>
       {file.type.startsWith("image") ? (
         <Image
           src={src}
@@ -226,6 +387,16 @@ function AttachmentPreview({
           <X size={20} />
         </button>
       )}
+      <div className="mt-2">
+        <input
+          type="text"
+          value={altText}
+          onChange={(e) => onAltTextChange(e.target.value)}
+          placeholder="Add alt text (optional)"
+          className="w-full rounded-md border bg-background px-3 py-1 text-sm"
+          aria-label={`Alt text for ${file.name}`}
+        />
+      </div>
     </div>
   );
 }

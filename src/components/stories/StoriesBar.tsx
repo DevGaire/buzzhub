@@ -3,6 +3,7 @@
 import { useSession } from "@/app/(main)/SessionProvider";
 import kyInstance from "@/lib/ky";
 import { StoryData } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { QueryWrapper } from "@/components/ui/query-states";
 import { LoadingSpinner, EmptyState } from "@/components/ui/loading-states";
@@ -69,7 +70,7 @@ export default function StoriesBar({ className }: StoriesBarProps) {
 
     if (isLoading) {
         return (
-            <div className={`flex items-center justify-center p-4 ${className}`}>
+            <div className={cn("flex items-center justify-center p-4", className)}>
                 <LoadingSpinner className="text-muted-foreground" />
                 <span className="ml-2 text-sm text-muted-foreground">Loading stories...</span>
             </div>
@@ -78,7 +79,7 @@ export default function StoriesBar({ className }: StoriesBarProps) {
 
     if (error) {
         return (
-            <div className={`p-4 ${className}`}>
+            <div className={cn("p-4", className)}>
                 <ComponentErrorBoundary componentName="Stories">
                     <div className="text-center text-muted-foreground">
                         <p className="text-sm">Unable to load stories</p>
@@ -91,7 +92,7 @@ export default function StoriesBar({ className }: StoriesBarProps) {
     if (stories.length === 0) {
         return (
             <ComponentErrorBoundary componentName="Stories">
-                <div className={`flex items-center gap-4 overflow-x-auto p-4 ${className}`}>
+                <div className={cn("flex items-center gap-4 overflow-x-auto p-4", className)}>
                     <StoryCircle
                         isAddStory
                         onClick={() => setShowCreateModal(true)}
@@ -113,7 +114,7 @@ export default function StoriesBar({ className }: StoriesBarProps) {
 
     return (
         <ComponentErrorBoundary componentName="Stories">
-            <div className={`flex items-center gap-4 overflow-x-auto p-4 ${className}`}>
+            <div className={cn("flex items-center gap-4 overflow-x-auto p-4", className)}>
                 {/* Add story button - always show for current user */}
                 <StoryCircle
                     isAddStory

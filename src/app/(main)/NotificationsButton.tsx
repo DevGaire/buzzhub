@@ -27,7 +27,7 @@ export default function NotificationsButton({
     return (
         <Button
             variant="ghost"
-            className="flex items-center justify-start gap-3"
+            className="flex items-center justify-start gap-3 relative"
             title="Notifications"
             asChild
         >
@@ -35,8 +35,8 @@ export default function NotificationsButton({
                 <div className="relative">
                     <Bell />
                     {!!data.unreadCount && (
-                        <span className="absolute -right-1 -top-1 rounded-full bg-primary px-1 text-xs font-medium tabular-nums text-primary-foreground">
-                            {data.unreadCount}
+                        <span className="absolute -right-1 -top-1 flex min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-xs font-bold tabular-nums text-white shadow-lg">
+                            {data.unreadCount > 99 ? "99+" : data.unreadCount}
                         </span>
                     )}
                 </div>

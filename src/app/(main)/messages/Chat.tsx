@@ -70,24 +70,22 @@ export default function Chat() {
 
     return (
         <ComponentErrorBoundary componentName="Chat">
-            <main className="relative w-full h-[80vh] overflow-hidden rounded-2xl bg-card shadow-sm">
-                <div className="absolute inset-0 flex w-full h-full">
+            <main className="flex w-full flex-1 overflow-hidden rounded-2xl shadow-sm" style={{ backgroundColor: '#000000' }}>
+                <div className="flex w-full h-[calc(100vh-8rem)]" style={{ backgroundColor: '#000000' }}>
                     <StreamChat
                         client={chatClient}
-                        theme={
-                            resolvedTheme === "dark"
-                                ? "str-chat__theme-dark"
-                                : "str-chat__theme-light"
-                        }
+                        theme="str-chat__theme-dark"
                     >
-                        <ChatSidebar
-                            open={sidebarOpen}
-                            onClose={() => setSidebarOpen(false)}
-                        />
-                        <ChatChannel
-                            open={!sidebarOpen}
-                            openSidebar={() => setSidebarOpen(true)}
-                        />
+                        <div className="flex w-full h-full" style={{ backgroundColor: '#000000' }}>
+                            <ChatSidebar
+                                open={sidebarOpen}
+                                onClose={() => setSidebarOpen(false)}
+                            />
+                            <ChatChannel
+                                open={!sidebarOpen}
+                                openSidebar={() => setSidebarOpen(true)}
+                            />
+                        </div>
                     </StreamChat>
                 </div>
             </main>
