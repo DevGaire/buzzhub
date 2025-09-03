@@ -250,6 +250,8 @@ model Note {
 enum MediaType {
   IMAGE
   VIDEO
+  AUDIO
+  GIF
 }
 
 enum NotificationType {

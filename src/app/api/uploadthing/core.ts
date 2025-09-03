@@ -53,6 +53,7 @@ export const fileRouter = {
   attachment: f({
     image: { maxFileSize: "4MB", maxFileCount: 5 },
     video: { maxFileSize: "64MB", maxFileCount: 5 },
+    audio: { maxFileSize: "16MB", maxFileCount: 5 },
   })
     .middleware(async () => {
       const { user } = await validateRequest();
@@ -62,15 +63,38 @@ export const fileRouter = {
       return {};
     })
     .onUploadComplete(async ({ file }) => {
+      console.log("🎵 UploadThing: Processing file", {
+        name: file.name,
+        type: file.type,
+        size: file.size
+      });
+
+      // Determine media type based on file type
+      let mediaType: "IMAGE" | "VIDEO" | "AUDIO" | "GIF" = "IMAGE";
+      
+      if (file.type.startsWith("image/gif")) {
+        mediaType = "GIF";
+      } else if (file.type.startsWith("image/")) {
+        mediaType = "IMAGE";
+      } else if (file.type.startsWith("video/")) {
+        mediaType = "VIDEO";
+      } else if (file.type.startsWith("audio/")) {
+        mediaType = "AUDIO";
+      }
+
+      console.log("🎵 UploadThing: Detected media type:", mediaType);
+
       const media = await prisma.media.create({
         data: {
           url: file.url.replace(
             "/f/",
             `/a/${process.env.NEXT_PUBLIC_UPLOADTHING_APP_ID}/`,
           ),
-          type: file.type.startsWith("image") ? "IMAGE" : "VIDEO",
+          type: mediaType,
         },
       });
+
+      console.log("🎵 UploadThing: Media created with ID:", media.id);
 
       return { mediaId: media.id };
     }),

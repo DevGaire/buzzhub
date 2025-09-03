@@ -205,6 +205,59 @@ function MediaPreview({ media }: MediaPreviewProps) {
     );
   }
 
+  if (media.type === "GIF") {
+    if (imageError) {
+      return (
+        <div className="mx-auto size-fit max-h-[30rem] rounded-2xl bg-muted flex items-center justify-center p-8">
+          <div className="text-center">
+            <p className="text-destructive font-medium">❌ GIF failed to load</p>
+            <p className="text-sm text-muted-foreground mt-2 break-all">URL: {media.url}</p>
+            <button 
+              onClick={() => {
+                setImageError(false);
+                setImageLoading(true);
+              }}
+              className="mt-2 text-xs text-primary hover:underline"
+            >
+              🔄 Retry
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="relative mx-auto size-fit max-h-[30rem] rounded-2xl overflow-hidden">
+        {imageLoading && (
+          <div className="absolute inset-0 bg-muted animate-pulse flex items-center justify-center">
+            <p className="text-sm text-muted-foreground">Loading GIF...</p>
+          </div>
+        )}
+        <Image
+          src={media.url}
+          alt="GIF"
+          width={500}
+          height={500}
+          className="mx-auto size-fit max-h-[30rem] rounded-2xl"
+          unoptimized // Important for GIFs to maintain animation
+          onError={(e) => {
+            console.error("❌ GIF failed to load:", media.url, e);
+            setImageError(true);
+            setImageLoading(false);
+          }}
+          onLoad={() => {
+            console.log("✅ GIF loaded successfully:", media.url);
+            setImageLoading(false);
+          }}
+          onLoadStart={() => {
+            console.log("🔄 GIF loading started:", media.url);
+            setImageLoading(true);
+          }}
+        />
+      </div>
+    );
+  }
+
   if (media.type === "VIDEO") {
     return (
       <div className="mx-auto size-fit max-h-[30rem] rounded-2xl overflow-hidden">
@@ -222,6 +275,40 @@ function MediaPreview({ media }: MediaPreviewProps) {
             console.log("✅ Video can play:", media.url);
           }}
         />
+      </div>
+    );
+  }
+
+  if (media.type === "AUDIO") {
+    return (
+      <div className="mx-auto max-w-md rounded-2xl bg-muted/50 p-4">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+            🎵
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-sm">Audio</p>
+            <p className="text-xs text-muted-foreground">Click to play</p>
+          </div>
+        </div>
+        <audio 
+          controls 
+          className="w-full"
+          onError={(e) => {
+            console.error("❌ Audio failed to load:", media.url, e);
+          }}
+          onLoadStart={() => {
+            console.log("🔄 Audio loading started:", media.url);
+          }}
+          onCanPlay={() => {
+            console.log("✅ Audio can play:", media.url);
+          }}
+        >
+          <source src={media.url} type="audio/mpeg" />
+          <source src={media.url} type="audio/wav" />
+          <source src={media.url} type="audio/ogg" />
+          Your browser does not support the audio element.
+        </audio>
       </div>
     );
   }

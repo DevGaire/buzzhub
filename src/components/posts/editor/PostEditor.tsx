@@ -257,11 +257,11 @@ function AddAttachmentsButton({
         onClick={() => fileInputRef.current?.click()}
       >
         <ImageIcon size={18} />
-        {showLabel && <span className="text-xs">Photo/Video</span>}
+        {showLabel && <span className="text-xs">Media</span>}
       </Button>
       <input
         type="file"
-        accept="image/*, video/*"
+        accept="image/*, video/*, audio/*"
         multiple
         ref={fileInputRef}
         className="sr-only hidden"
@@ -366,6 +366,7 @@ function AttachmentPreview({
           ↓
         </button>
       </div>
+      
       {file.type.startsWith("image") ? (
         <Image
           src={src}
@@ -374,11 +375,43 @@ function AttachmentPreview({
           height={500}
           className="size-fit max-h-[30rem] rounded-2xl"
         />
-      ) : (
+      ) : file.type.startsWith("video") ? (
         <video controls className="size-fit max-h-[30rem] rounded-2xl">
           <source src={src} type={file.type} />
         </video>
+      ) : file.type.startsWith("audio") ? (
+        <div className="flex items-center gap-3 rounded-2xl bg-muted p-4 min-w-[300px]">
+          <div className="flex-shrink-0">
+            <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+              🎵
+            </div>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-sm truncate">{file.name}</p>
+            <p className="text-xs text-muted-foreground">
+              {(file.size / 1024 / 1024).toFixed(1)} MB • Audio
+            </p>
+            <audio controls className="w-full mt-2">
+              <source src={src} type={file.type} />
+            </audio>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center gap-3 rounded-2xl bg-muted p-4 min-w-[300px]">
+          <div className="flex-shrink-0">
+            <div className="w-12 h-12 rounded-full bg-muted-foreground/20 flex items-center justify-center">
+              📎
+            </div>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-sm truncate">{file.name}</p>
+            <p className="text-xs text-muted-foreground">
+              {(file.size / 1024 / 1024).toFixed(1)} MB • {file.type}
+            </p>
+          </div>
+        </div>
       )}
+      
       {!isUploading && (
         <button
           onClick={onRemoveClick}
@@ -387,12 +420,13 @@ function AttachmentPreview({
           <X size={20} />
         </button>
       )}
+      
       <div className="mt-2">
         <input
           type="text"
           value={altText}
           onChange={(e) => onAltTextChange(e.target.value)}
-          placeholder="Add alt text (optional)"
+          placeholder={file.type.startsWith("audio") ? "Add description (optional)" : "Add alt text (optional)"}
           className="w-full rounded-md border bg-background px-3 py-1 text-sm"
           aria-label={`Alt text for ${file.name}`}
         />
