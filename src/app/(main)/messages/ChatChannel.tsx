@@ -13,10 +13,11 @@ import { ComponentErrorBoundary } from "@/components/ErrorBoundary";
 import {
     Channel,
     ChannelHeader,
-        MessageInput,
     MessageList,
     Window,
 } from "stream-chat-react";
+import CustomMessageInput from "./CustomMessageInput";
+import CustomMessage from "./CustomMessage";
 
 interface ChatChannelProps {
     open: boolean;
@@ -47,15 +48,15 @@ export default function ChatChannel({ open, openSidebar }: ChatChannelProps) {
                 )}
                 {open ? (
                 <div className="h-full min-h-0 flex flex-col">
-                <Channel>
-                    <Window>
-                        <ChannelHeader />
-                        <MessageList />
-                        <MessageInput focus />
-                    </Window>
-                <ConnectionStatus className="mx-3 mt-1 text-xs" />
-                        <MessageInputTyping />
-                </Channel>
+                    <Channel>
+                        <Window>
+                            <ChannelHeader />
+                            <MessageList Message={CustomMessage} />
+                            <CustomMessageInput />
+                        </Window>
+                    </Channel>
+                    <ConnectionStatus className="mx-3 mt-1 text-xs" />
+                    <MessageInputTyping />
                 </div>
                 ) : null}
 
@@ -68,5 +69,3 @@ export default function ChatChannel({ open, openSidebar }: ChatChannelProps) {
         </ComponentErrorBoundary>
     );
 }
-
-
