@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { MailPlus, Users2, MessagesSquare, X } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
     ChannelList,
     ChannelPreviewMessenger,
@@ -32,18 +32,60 @@ export default function ChatSidebar({ open, onClose }: ChatSidebarProps) {
         }
     }, [channel?.id, queryClient]);
 
-    const ChannelPreviewCustom = useCallback(
-        (props: ChannelPreviewUIComponentProps) => (
-            <ChannelPreviewMessenger
-                {...props}
-                onSelect={() => {
-                    props.setActiveChannel?.(props.channel, props.watchers);
-                    onClose();
-                }}
-            />
-        ),
-        [onClose],
-    );
+    const ChannelPreviewCustom = (props: ChannelPreviewUIComponentProps) => {
+        const [hasDraft, setHasDraft] = useState(false);
+        const channelId = props.channel?.id;
+
+        // Initial check and listen for changes across tabs
+        useEffect(() => {
+            if (!channelId) return;
+            try {
+                const saved = localStorage.getItem(`chat-draft:${channelId}`);
+                setHasDraft(!!saved && saved.trim().length > 0);
+            } catch {}
+
+            const onStorage = (e: StorageEvent) => {
+                if (e.key === `chat-draft:${channelId}`) {
+                    setHasDraft(!!e.newValue && e.newValue.trim().length > 0);
+                }
+            };
+            window.addEventListener("storage", onStorage);
+            return () => window.removeEventListener("storage", onStorage);
+        }, [channelId]);
+
+        // Same-tab updates (typing) won't trigger storage event; re-check on focus
+        useEffect(() => {
+            const onFocus = () => {
+                if (!channelId) return;
+                try {
+                    const saved = localStorage.getItem(`chat-draft:${channelId}`);
+                    setHasDraft(!!saved && saved.trim().length > 0);
+                } catch {}
+            };
+            window.addEventListener("focus", onFocus);
+            return () => window.removeEventListener("focus", onFocus);
+        }, [channelId]);
+
+        return (
+            <div className="relative">
+                <ChannelPreviewMessenger
+                    {...props}
+                    onSelect={() => {
+                        props.setActiveChannel?.(props.channel, props.watchers);
+                        onClose();
+                    }}
+                />
+                {hasDraft && (
+                    <span
+                        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-yellow-500/30 bg-yellow-500/20 px-2 py-0.5 text-[10px] font-semibold text-yellow-300"
+                        title="Unsent draft"
+                    >
+                        Draft
+                    </span>
+                )}
+            </div>
+        );
+    };
 
     const [tab, setTab] = useState<"channels" | "people">("channels");
 

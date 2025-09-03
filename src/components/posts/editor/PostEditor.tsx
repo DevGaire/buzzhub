@@ -24,6 +24,8 @@ export default function PostEditor() {
   const [visibility, setVisibility] = useState<"public" | "followers" | "only_me">("public");
   const [altTextByName, setAltTextByName] = useState<Record<string, string>>({});
   const [attachmentOrder, setAttachmentOrder] = useState<string[]>([]);
+  const [feeling, setFeeling] = useState<{ type: 'feeling' | 'activity'; emoji: string; label: string } | null>(null);
+  const [showFeelingPicker, setShowFeelingPicker] = useState(false);
 
   const {
     startUpload,
@@ -78,9 +80,12 @@ export default function PostEditor() {
   };
 
   function onSubmit() {
+    const contentToSend = feeling
+      ? `${input}${input ? '\n\n' : ''}${feeling.type === 'feeling' ? 'Feeling' : 'Activity'}: ${feeling.emoji} ${feeling.label}`
+      : input;
     mutation.mutate(
       {
-        content: input,
+        content: contentToSend,
         mediaIds: attachments.map((a) => a.mediaId).filter(Boolean) as string[],
         visibility,
       },
@@ -88,6 +93,8 @@ export default function PostEditor() {
         onSuccess: () => {
           editor?.commands.clearContent();
           resetMediaUploads();
+          setFeeling(null);
+          setShowFeelingPicker(false);
         },
       },
     );
@@ -123,10 +130,18 @@ export default function PostEditor() {
                 disabled={isUploading || attachments.length >= 5}
                 showLabel
               />
-              <Button variant="ghost" size="sm" disabled className="h-8 gap-2 text-muted-foreground">
-                <span className="inline-block size-5 rounded-full bg-muted" />
-                <span className="text-xs">Feeling/Activity</span>
-              </Button>
+              <div className="relative">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 gap-2 text-primary"
+                  onClick={() => { setExpanded(true); setShowFeelingPicker(true); }}
+                  title="Add feeling or activity"
+                >
+                  <span className="inline-block size-5 rounded-full bg-muted" />
+                  <span className="text-xs">Feeling/Activity</span>
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -157,6 +172,20 @@ export default function PostEditor() {
               </Button>
             </div>
           </div>
+          {feeling && (
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full border px-2 py-1 text-xs">
+              <span className="opacity-80">{feeling.type === 'feeling' ? 'Feeling' : 'Activity'}:</span>
+              <span>{feeling.emoji} {feeling.label}</span>
+              <button
+                type="button"
+                className="px-1 text-muted-foreground hover:text-foreground"
+                title="Clear"
+                onClick={() => setFeeling(null)}
+              >
+                ×
+              </button>
+            </div>
+          )}
           <div {...rootProps}>
             <EditorContent
               editor={editor}
@@ -214,10 +243,57 @@ export default function PostEditor() {
                 disabled={isUploading || attachments.length >= 5}
                 showLabel
               />
-              <Button variant="ghost" size="sm" disabled className="h-8 gap-2 text-muted-foreground">
-                <span className="inline-block size-5 rounded-full bg-muted" />
-                <span className="text-xs">Feeling/Activity</span>
-              </Button>
+              <div className="relative">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 gap-2 text-primary"
+                  onClick={() => setShowFeelingPicker((s) => !s)}
+                  title="Add feeling or activity"
+                >
+                  <span className="inline-block size-5 rounded-full bg-muted" />
+                  <span className="text-xs">Feeling/Activity</span>
+                </Button>
+                {showFeelingPicker && (
+                  <div className="absolute left-0 top-full z-50 mt-2 w-64 rounded-lg border bg-card p-2 shadow">
+                    <div className="mb-1 text-xs font-semibold">Feeling</div>
+                    <div className="grid grid-cols-3 gap-1">
+                      {['😊 Happy','😢 Sad','😡 Angry','😴 Tired','🤒 Sick','😍 In love'].map((s) => {
+                        const [emoji, ...rest] = s.split(' ');
+                        const label = rest.join(' ');
+                        return (
+                          <button
+                            key={s}
+                            className="rounded bg-muted px-2 py-1 text-xs hover:bg-muted/80"
+                            onClick={() => { setFeeling({ type: 'feeling', emoji, label }); setShowFeelingPicker(false); }}
+                          >
+                            {emoji} {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="mt-2 mb-1 text-xs font-semibold">Activity</div>
+                    <div className="grid grid-cols-3 gap-1">
+                      {['🎵 Music','🎮 Gaming','🎬 Movie','🏃‍♂️ Running','🍽️ Eating','✈️ Traveling'].map((s) => {
+                        const [emoji, ...rest] = s.split(' ');
+                        const label = rest.join(' ');
+                        return (
+                          <button
+                            key={s}
+                            className="rounded bg-muted px-2 py-1 text-xs hover:bg-muted/80"
+                            onClick={() => { setFeeling({ type: 'activity', emoji, label }); setShowFeelingPicker(false); }}
+                          >
+                            {emoji} {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="mt-2 text-right">
+                      <button className="text-xs text-muted-foreground hover:underline" onClick={() => setShowFeelingPicker(false)}>Close</button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
             <LoadingButton
               onClick={onSubmit}

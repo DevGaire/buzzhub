@@ -37,6 +37,8 @@ model User {
   stories                 Story[]
   storyViews              StoryView[]
   storyHighlights         StoryHighlight[]
+  bookmarkCollections     BookmarkCollection[]
+  reports                 Report[]
 
   @@map("users")
 }
@@ -74,6 +76,7 @@ model Post {
   linkedNotifications Notification[]
   attachments         Media[]
   user                User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  collectionItems     BookmarkCollectionItem[]
 
   @@map("posts")
 }
@@ -303,4 +306,62 @@ enum StoryPrivacy {
   PUBLIC
   FOLLOWERS
   CLOSE_FRIENDS
+}
+
+// New: User bookmark collections
+model BookmarkCollection {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     BookmarkCollectionItem[]
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@map("bookmark_collections")
+}
+
+model BookmarkCollectionItem {
+  id           String   @id @default(cuid())
+  collectionId String
+  postId       String
+  createdAt    DateTime @default(now())
+
+  collection BookmarkCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  post       Post               @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, postId])
+  @@index([collectionId])
+  @@index([postId])
+  @@map("bookmark_collection_items")
+}
+
+// New: Reporting system for moderation
+enum ReportType {
+  POST
+  COMMENT
+  USER
+}
+
+enum ReportStatus {
+  OPEN
+  RESOLVED
+  REJECTED
+}
+
+model Report {
+  id           String       @id @default(cuid())
+  createdById  String
+  targetType   ReportType
+  targetId     String
+  reason       String
+  status       ReportStatus @default(OPEN)
+  createdAt    DateTime     @default(now())
+
+  createdBy    User         @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([createdById])
+  @@index([targetType, targetId])
+  @@map("reports")
 }

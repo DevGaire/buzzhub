@@ -12,16 +12,30 @@ export async function GET(req: NextRequest) {
     }
 
     const cursor = req.nextUrl.searchParams.get("cursor") || undefined;
+    const collectionId = req.nextUrl.searchParams.get("collectionId") || undefined;
     const pageSize = 10;
 
-    const posts = await prisma.post.findMany({
-      where: {
-        bookmarks: {
-          some: {
-            userId: user.id,
+    const baseWhere = collectionId
+      ? {
+          // Posts saved in a specific collection belonging to this user
+          collectionItems: {
+            some: {
+              collectionId,
+              collection: { userId: user.id },
+            },
           },
-        },
-      },
+        }
+      : {
+          // All posts the user bookmarked
+          bookmarks: {
+            some: {
+              userId: user.id,
+            },
+          },
+        };
+
+    const posts = await prisma.post.findMany({
+      where: baseWhere,
       include: getPostDataInclude(user.id),
       orderBy: { createdAt: "desc" },
       take: pageSize + 1,

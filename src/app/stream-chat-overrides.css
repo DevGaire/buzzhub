@@ -112,7 +112,7 @@
 
 .str-chat__message--me .str-chat__message-text-inner {
   background: #363636;
-  color: #ffffff;
+  color: #040303ff;
   border-radius: 18px 18px 4px 18px;
   margin-left: auto;
 }
@@ -358,10 +358,9 @@
   background: #000000;
 }
 
-/* Text colors */
-.str-chat,
-.str-chat * {
-  color: #ffffff;
+/* Text colors - scoped; avoid forcing all descendants to white */
+.str-chat {
+  color: rgba(255, 255, 255, 0.95);
 }
 
 /* Secondary text */
@@ -388,4 +387,30 @@
   .str-chat__message-text-inner {
     max-width: 85%;
   }
+}
+
+/* Contrast fix: enforce readable text on message bubbles */
+.str-chat__message-text-inner,
+.str-chat__message-simple-text-inner,
+.str-chat__message-bubble,
+.str-chat__message-simple__text {
+  background-color: #111213 !important;
+  color: #ffffff !important;
+}
+
+/* Outgoing (me) message bubble */
+.str-chat__message--me .str-chat__message-text-inner,
+.str-chat__message--me .str-chat__message-simple-text-inner,
+.str-chat__message--me .str-chat__message-bubble,
+.str-chat__message--me .str-chat__message-simple__text {
+  background-color: #2f2f2f !important;
+  color: #ffffff !important;
+}
+
+/* Incoming (other) message bubble keeps gradient if set, but ensure readable text */
+.str-chat__message--other .str-chat__message-text-inner,
+.str-chat__message--other .str-chat__message-simple-text-inner,
+.str-chat__message--other .str-chat__message-bubble,
+.str-chat__message--other .str-chat__message-simple__text {
+  color: #ffffff !important;
 }
