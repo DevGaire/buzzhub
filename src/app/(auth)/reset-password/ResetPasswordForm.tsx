@@ -16,7 +16,12 @@ import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { resetPassword } from "./actions";
 
-export default function ResetPasswordForm({ token }: { token: string }) {
+interface ResetPasswordFormProps {
+  token: string;
+  isOAuthUser?: boolean;
+}
+
+export default function ResetPasswordForm({ token, isOAuthUser = false }: ResetPasswordFormProps) {
   const [error, setError] = useState<string>();
   const [success, setSuccess] = useState<string>();
   const [isPending, startTransition] = useTransition();
@@ -32,7 +37,12 @@ export default function ResetPasswordForm({ token }: { token: string }) {
     startTransition(async () => {
       const { error, success } = await resetPassword({ ...values, token });
       if (error) setError(error);
-      if (success) setSuccess(success);
+      if (success) {
+        setSuccess(isOAuthUser 
+          ? "Password set successfully! You can now sign in with email/password or Google."
+          : success
+        );
+      }
     });
   }
 
@@ -46,16 +56,21 @@ export default function ResetPasswordForm({ token }: { token: string }) {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>New password</FormLabel>
+              <FormLabel>
+                {isOAuthUser ? "Set your password" : "New password"}
+              </FormLabel>
               <FormControl>
-                <PasswordInput placeholder="New password" {...field} />
+                <PasswordInput 
+                  placeholder={isOAuthUser ? "Choose a password" : "New password"} 
+                  {...field} 
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
         <LoadingButton loading={isPending} type="submit" className="w-full">
-          Reset password
+          {isOAuthUser ? "Set Password" : "Reset Password"}
         </LoadingButton>
       </form>
     </Form>

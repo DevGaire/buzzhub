@@ -19,10 +19,15 @@ export async function resetPassword(
 
     const record = await prisma.passwordResetToken.findUnique({
       where: { tokenHash },
+      include: { user: true }
     });
+    
     if (!record || record.expiresAt < new Date()) {
       return { error: "Invalid or expired token" };
     }
+
+    // Check if this is an OAuth user (no existing password)
+    const isOAuthUser = !record.user.passwordHash;
 
     const passwordHash = await hash(password, {
       memoryCost: 19456,
@@ -42,9 +47,15 @@ export async function resetPassword(
     // Invalidate all sessions for this user to force re-login
     await lucia.invalidateUserSessions(record.userId);
 
-    return { success: "Password has been reset. You can now log in." };
+    const successMessage = isOAuthUser 
+      ? "Password set successfully! You can now sign in with either Google or email/password."
+      : "Password has been reset. You can now log in.";
+
+    console.log(`✅ Password ${isOAuthUser ? 'set' : 'reset'} successfully for user:`, record.user.username);
+
+    return { success: successMessage };
   } catch (e) {
-    console.error(e);
+    console.error("❌ Reset password error:", e);
     return { error: "Something went wrong. Please try again." };
   }
 }
