@@ -37,7 +37,13 @@ export async function GET(req: NextRequest) {
           Authorization: `Bearer ${tokens.accessToken}`,
         },
       })
-      .json<{ id: string; name: string }>();
+      .json<{ id: string; name: string; email: string; picture?: string }>();
+
+    console.log("🔍 Google OAuth: User data received:", {
+      id: googleUser.id,
+      name: googleUser.name,
+      email: googleUser.email
+    });
 
     const existingUser = await prisma.user.findUnique({
       where: {
@@ -46,6 +52,17 @@ export async function GET(req: NextRequest) {
     });
 
     if (existingUser) {
+      console.log("✅ Google OAuth: Existing user found:", existingUser.username);
+      
+      // Update existing user with email if missing
+      if (!existingUser.email && googleUser.email) {
+        console.log("📧 Google OAuth: Updating existing user with email:", googleUser.email);
+        await prisma.user.update({
+          where: { id: existingUser.id },
+          data: { email: googleUser.email }
+        });
+      }
+
       const session = await lucia.createSession(existingUser.id, {});
       const sessionCookie = lucia.createSessionCookie(session.id);
       cookies().set(
@@ -62,8 +79,13 @@ export async function GET(req: NextRequest) {
     }
 
     const userId = generateIdFromEntropySize(10);
-
     const username = slugify(googleUser.name) + "-" + userId.slice(0, 4);
+
+    console.log("🆕 Google OAuth: Creating new user:", {
+      username,
+      email: googleUser.email,
+      displayName: googleUser.name
+    });
 
     await prisma.$transaction(async (tx) => {
       await tx.user.create({
@@ -71,6 +93,7 @@ export async function GET(req: NextRequest) {
           id: userId,
           username,
           displayName: googleUser.name,
+          email: googleUser.email, // Save the email!
           googleId: googleUser.id,
         },
       });
@@ -80,6 +103,8 @@ export async function GET(req: NextRequest) {
         name: username,
       });
     });
+
+    console.log("✅ Google OAuth: New user created successfully with email");
 
     const session = await lucia.createSession(userId, {});
     const sessionCookie = lucia.createSessionCookie(session.id);
@@ -96,7 +121,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error(error);
+    console.error("❌ Google OAuth Error:", error);
     if (error instanceof OAuth2RequestError) {
       return new Response(null, {
         status: 400,

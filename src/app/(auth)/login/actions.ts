@@ -14,26 +14,51 @@ export async function login(
   try {
     const { username, password } = loginSchema.parse(credentials);
 
+    console.log("🔍 Login: Attempting login with:", username);
+
+    // Support both username and email login
     const existingUser = await prisma.user.findFirst({
       where: {
-        username: {
-          equals: username,
-          mode: "insensitive",
-        },
+        OR: [
+          {
+            username: {
+              equals: username,
+              mode: "insensitive",
+            },
+          },
+          {
+            email: {
+              equals: username,
+              mode: "insensitive",
+            },
+          },
+        ],
       },
     });
 
-    if (!existingUser || !existingUser.passwordHash) {
+    if (!existingUser) {
+      console.log("❌ Login: No user found with username/email:", username);
       return {
         error: "Incorrect username or password",
       };
     }
 
-    // Block login for unverified email/password users
+    if (!existingUser.passwordHash) {
+      console.log("❌ Login: User found but no password hash:", existingUser.username);
+      return {
+        error: "Incorrect username or password",
+      };
+    }
+
+    console.log("✅ Login: User found:", existingUser.username, "- Has password:", !!existingUser.passwordHash);
+
+    // Block login for unverified email/password users (but allow OAuth users)
     if (!existingUser.googleId && !existingUser.emailVerifiedAt) {
+      console.log("❌ Login: Email not verified for user:", existingUser.username);
       return { error: "Please verify your email before logging in." };
     }
 
+    console.log("🔐 Login: Verifying password...");
     const validPassword = await verify(existingUser.passwordHash, password, {
       memoryCost: 19456,
       timeCost: 2,
@@ -42,10 +67,13 @@ export async function login(
     });
 
     if (!validPassword) {
+      console.log("❌ Login: Invalid password for user:", existingUser.username);
       return {
         error: "Incorrect username or password",
       };
     }
+
+    console.log("✅ Login: Password verified successfully for user:", existingUser.username);
 
     const session = await lucia.createSession(existingUser.id, {});
     const sessionCookie = lucia.createSessionCookie(session.id);
@@ -55,10 +83,11 @@ export async function login(
       sessionCookie.attributes,
     );
 
+    console.log("✅ Login: Session created successfully for user:", existingUser.username);
     return redirect("/");
   } catch (error) {
     if (isRedirectError(error)) throw error;
-    console.error(error);
+    console.error("❌ Login: Unexpected error:", error);
     return {
       error: "Something went wrong. Please try again.",
     };
