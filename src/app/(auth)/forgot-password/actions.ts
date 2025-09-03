@@ -55,8 +55,8 @@ export async function requestPasswordReset(
       const mailOptions = {
         from: process.env.MAIL_FROM,
         to: email,
-        subject: "🔐 Reset Your Buzzhub Password",
-        text: `Hi there!\n\nYou requested a password reset for your Buzzhub account.\n\nClick the link below to reset your password:\n${resetUrl}\n\nThis link will expire in 1 hour for security reasons.\n\nIf you didn't request this password reset, please ignore this email and your password will remain unchanged.\n\nBest regards,\nThe Buzzhub Team`,
+        subject: `🔐 Password Reset Request for @${user.username}`,
+        text: `Hi ${user.displayName || user.username}!\n\nYou requested a password reset for your Buzzhub account (@${user.username}).\n\nClick the link below to reset your password:\n${resetUrl}\n\nThis link will expire in 1 hour for security reasons.\n\nAccount Details:\n- Username: @${user.username}\n- Email: ${email}\n- Reset Link: ${resetUrl}\n\nIf you didn't request this password reset, please ignore this email and your password will remain unchanged.\n\nBest regards,\nThe Buzzhub Team`,
         html: `
           <!DOCTYPE html>
           <html>
@@ -72,11 +72,29 @@ export async function requestPasswordReset(
             </div>
             
             <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e9ecef;">
-              <h2 style="color: #495057; margin-top: 0;">Hi there! 👋</h2>
+              <h2 style="color: #495057; margin-top: 0;">Hi ${user.displayName || user.username}! 👋</h2>
               
               <p style="font-size: 16px; margin-bottom: 20px;">
-                You requested a password reset for your Buzzhub account. No worries, it happens to the best of us!
+                You requested a password reset for your Buzzhub account <strong>@${user.username}</strong>. No worries, it happens to the best of us!
               </p>
+              
+              <div style="background: #e3f2fd; border: 1px solid #bbdefb; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                <h3 style="color: #1565c0; margin: 0 0 10px 0; font-size: 16px;">📋 Account Information</h3>
+                <table style="width: 100%; font-size: 14px;">
+                  <tr>
+                    <td style="padding: 5px 0; color: #666;"><strong>Username:</strong></td>
+                    <td style="padding: 5px 0; color: #333;">@${user.username}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 5px 0; color: #666;"><strong>Email:</strong></td>
+                    <td style="padding: 5px 0; color: #333;">${email}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 5px 0; color: #666;"><strong>Request Time:</strong></td>
+                    <td style="padding: 5px 0; color: #333;">${new Date().toLocaleString()}</td>
+                  </tr>
+                </table>
+              </div>
               
               <div style="text-align: center; margin: 30px 0;">
                 <a href="${resetUrl}" 
@@ -89,31 +107,38 @@ export async function requestPasswordReset(
                           font-size: 16px;
                           display: inline-block;
                           box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
-                  Reset My Password
+                  🔑 Reset My Password
                 </a>
               </div>
               
               <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px; padding: 15px; margin: 20px 0;">
                 <p style="margin: 0; font-size: 14px; color: #856404;">
-                  ⏰ <strong>Important:</strong> This link will expire in 1 hour for security reasons.
+                  ⏰ <strong>Important:</strong> This reset link will expire in 1 hour for security reasons.
                 </p>
               </div>
               
-              <p style="font-size: 14px; color: #6c757d; margin-top: 20px;">
-                If the button doesn't work, copy and paste this link into your browser:<br>
-                <a href="${resetUrl}" style="color: #667eea; word-break: break-all;">${resetUrl}</a>
-              </p>
+              <div style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 5px; padding: 15px; margin: 20px 0;">
+                <p style="margin: 0 0 10px 0; font-size: 14px; color: #495057; font-weight: bold;">🔗 Reset Link:</p>
+                <p style="margin: 0; font-size: 12px; word-break: break-all; color: #6c757d; font-family: monospace; background: white; padding: 10px; border-radius: 4px;">
+                  ${resetUrl}
+                </p>
+              </div>
               
               <hr style="border: none; border-top: 1px solid #e9ecef; margin: 30px 0;">
               
-              <p style="font-size: 14px; color: #6c757d;">
-                <strong>Didn't request this?</strong> No problem! You can safely ignore this email and your password will remain unchanged.
-              </p>
+              <div style="background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 5px; padding: 15px; margin: 20px 0;">
+                <p style="margin: 0; font-size: 14px; color: #721c24;">
+                  <strong>🚨 Security Notice:</strong> If you didn't request this password reset, please ignore this email and your password will remain unchanged. Consider enabling two-factor authentication for better security.
+                </p>
+              </div>
               
               <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e9ecef;">
                 <p style="font-size: 14px; color: #6c757d; margin: 0;">
                   Best regards,<br>
                   <strong style="color: #495057;">The Buzzhub Team</strong> 🚀
+                </p>
+                <p style="font-size: 12px; color: #adb5bd; margin: 10px 0 0 0;">
+                  This email was sent to ${email} for account @${user.username}
                 </p>
               </div>
             </div>
@@ -123,7 +148,7 @@ export async function requestPasswordReset(
       };
 
       try {
-        console.log("Attempting to send email to:", email);
+        console.log("Attempting to send password reset email to:", email, "for user:", user.username);
         console.log("SMTP Config:", {
           host: process.env.SMTP_HOST,
           port: process.env.SMTP_PORT,
@@ -132,21 +157,17 @@ export async function requestPasswordReset(
         });
         
         const info = await transporter.sendMail(mailOptions);
-        console.log("Email sent successfully:", info.messageId);
-        
-        // Verify the connection
-        await transporter.verify();
-        console.log("SMTP connection verified");
+        console.log("Password reset email sent successfully:", info.messageId);
         
       } catch (mailErr) {
         console.error("Failed to send reset email:", mailErr);
         // Fall back to logging the link so devs can still access it
-        console.log("Password reset link:", resetUrl);
+        console.log("Password reset link for", user.username, ":", resetUrl);
         return { error: "Failed to send email. Please try again later." };
       }
     } else {
       // No SMTP configured, log link for development
-      console.log("Password reset link:", resetUrl);
+      console.log("Password reset link for", user.username, ":", resetUrl);
     }
 
     return { success: "If that email exists, a reset link has been sent." };
