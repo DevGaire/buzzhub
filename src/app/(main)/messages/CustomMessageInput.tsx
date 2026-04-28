@@ -6,8 +6,18 @@ import { useUploadThing } from "@/lib/uploadthing";
 import { toast } from "@/components/ui/use-toast";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Send } from "lucide-react";
+import { X, Reply, Smile, Mic, Square } from "lucide-react";
 import { useSession } from "../SessionProvider";
+import { useReply } from "./CustomMessage";
+import { cn } from "@/lib/utils";
+import dynamic from "next/dynamic";
+
+const EmojiPicker = dynamic(
+  () => import("@emoji-mart/react").then((m) => m.default),
+  { ssr: false },
+);
+
+const emojiData = () => import("@emoji-mart/data").then((m) => m.default);
 
 interface MediaFile {
     id: string;
@@ -21,12 +31,23 @@ export default function CustomMessageInput() {
     const { sendMessage } = useChannelActionContext();
     const { channel } = useChannelStateContext();
     const { user } = useSession();
+    const { replyingTo, setReplyingTo } = useReply();
 
     const [text, setText] = useState("");
     const [isSending, setIsSending] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+    // Voice recording state
+    const [isRecording, setIsRecording] = useState(false);
+    const [recordingSeconds, setRecordingSeconds] = useState(0);
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const audioChunksRef = useRef<Blob[]>([]);
+    const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const startUploadRef = useRef<((files: File[]) => Promise<any>) | null>(null);
 
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+    const emojiPickerRef = useRef<HTMLDivElement | null>(null);
 
     // Key drafts by channel id
     const draftKey = useMemo(() => channel?.id ? `chat-draft:${channel.id}` : undefined, [channel?.id]);
@@ -53,12 +74,19 @@ export default function CustomMessageInput() {
         } catch {}
     }, [draftKey]);
 
+    // Focus textarea when replying
+    useEffect(() => {
+        if (replyingTo && textareaRef.current) {
+            textareaRef.current.focus();
+        }
+    }, [replyingTo]);
+
     // Autosize textarea on text changes
     useEffect(() => {
         const el = textareaRef.current;
         if (!el) return;
         el.style.height = "auto";
-        el.style.height = Math.min(el.scrollHeight, 160) + "px"; // cap at ~8 lines
+        el.style.height = Math.min(el.scrollHeight, 160) + "px";
     }, [text]);
 
     // Debounced save draft
@@ -85,16 +113,96 @@ export default function CustomMessageInput() {
         return () => window.removeEventListener("beforeunload", onBeforeUnload);
     }, [text, isSending, isUploading]);
 
+    // Close emoji picker on outside click
+    useEffect(() => {
+        if (!showEmojiPicker) return;
+        const handler = (e: MouseEvent) => {
+            if (emojiPickerRef.current && !emojiPickerRef.current.contains(e.target as Node)) {
+                setShowEmojiPicker(false);
+            }
+        };
+        document.addEventListener("mousedown", handler);
+        return () => document.removeEventListener("mousedown", handler);
+    }, [showEmojiPicker]);
+
+    const handleEmojiSelect = useCallback((emoji: { native: string }) => {
+        setText((prev) => prev + emoji.native);
+        textareaRef.current?.focus();
+    }, []);
+
+    // Voice recording
+    const startRecording = useCallback(async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const mr = new MediaRecorder(stream);
+            mediaRecorderRef.current = mr;
+            audioChunksRef.current = [];
+            mr.ondataavailable = (e) => {
+                if (e.data.size > 0) audioChunksRef.current.push(e.data);
+            };
+            mr.start();
+            setIsRecording(true);
+            setRecordingSeconds(0);
+            recordingTimerRef.current = setInterval(() => setRecordingSeconds((s) => s + 1), 1000);
+        } catch {
+            toast({ variant: "destructive", description: "Microphone access denied." });
+        }
+    }, []);
+
+    const stopRecording = useCallback(() => {
+        const mr = mediaRecorderRef.current;
+        if (!mr) return;
+        mr.onstop = async () => {
+            const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+            const file = new File([blob], `voice-${Date.now()}.webm`, { type: "audio/webm" });
+            mr.stream.getTracks().forEach((t) => t.stop());
+            setIsRecording(false);
+            setRecordingSeconds(0);
+            if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+            setIsUploading(true);
+            try {
+                await startUploadRef.current?.([file]);
+            } catch {
+                setIsUploading(false);
+                toast({ variant: "destructive", description: "Failed to send voice message." });
+            }
+        };
+        mr.stop();
+    }, []);
+
+    const cancelRecording = useCallback(() => {
+        const mr = mediaRecorderRef.current;
+        if (!mr) return;
+        mr.onstop = null;
+        mr.stop();
+        mr.stream.getTracks().forEach((t) => t.stop());
+        mediaRecorderRef.current = null;
+        audioChunksRef.current = [];
+        setIsRecording(false);
+        setRecordingSeconds(0);
+        if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    }, []);
+
+    const formatRecDuration = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
+
     const handleSendText = useCallback(async () => {
         if (!channel?.id) return;
         const content = text.trim();
         if (!content) return;
         setIsSending(true);
         try {
-            await sendMessage({ text: content });
-            // Clear draft on success
+            // Build message with optional quoted_message_id for replies
+            const messagePayload: any = { text: content };
+            if (replyingTo?.id) {
+                messagePayload.quoted_message_id = replyingTo.id;
+            }
+
+            await sendMessage(messagePayload);
+
+            // Clear draft and reply state on success
             if (draftKey) localStorage.removeItem(draftKey);
             setText("");
+            setReplyingTo(null);
 
             // Client-initiated email notification (free plan)
             try {
@@ -121,14 +229,17 @@ export default function CustomMessageInput() {
         } finally {
             setIsSending(false);
         }
-    }, [channel?.id, draftKey, sendMessage, text]);
+    }, [channel?.id, draftKey, sendMessage, text, replyingTo, setReplyingTo, getDmRecipientId]);
 
     const onKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
             void handleSendText();
         }
-    }, [handleSendText]);
+        if (e.key === "Escape" && replyingTo) {
+            setReplyingTo(null);
+        }
+    }, [handleSendText, replyingTo, setReplyingTo]);
 
     const { startUpload } = useUploadThing("attachment", {
         onClientUploadComplete: async (res) => {
@@ -195,6 +306,11 @@ export default function CustomMessageInput() {
         },
     });
 
+    // Keep startUploadRef in sync so stopRecording can call it without closure issues
+    useEffect(() => {
+        startUploadRef.current = startUpload;
+    }, [startUpload]);
+
     const handleSendMedia = async (files: MediaFile[]) => {
         if (!files.length) return;
         setIsUploading(true);
@@ -211,30 +327,133 @@ export default function CustomMessageInput() {
     const disabled = !channel?.id || isUploading || isSending;
 
     return (
-        <div className="flex items-end gap-2 p-2">
-            <RichMediaSharing onSendMedia={handleSendMedia} className="flex-shrink-0" />
-            <div className="flex-1 flex items-end gap-2">
-                <textarea
-                    ref={textareaRef}
-                    value={text}
-                    onChange={(e) => setText(e.target.value)}
-                    onKeyDown={onKeyDown}
-                    disabled={disabled}
-                    placeholder={isUploading ? "Uploading..." : "Message..."}
-                    rows={1}
-                    className="w-full max-h-40 min-h-[40px] resize-none rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-white placeholder:text-white/50 focus:border-white/20 focus:outline-none"
-                />
-                <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    onClick={handleSendText}
-                    disabled={disabled || !text.trim()}
-                    title="Send"
-                    className="shrink-0"
+        <div className="bg-[#1A1B27] px-3 py-3 relative border-t border-white/[0.04]">
+            {/* Emoji Picker */}
+            {showEmojiPicker && (
+                <div
+                    ref={emojiPickerRef}
+                    className="absolute bottom-full left-3 mb-2 z-50"
                 >
-                    <Send className="w-5 h-5" />
-                </Button>
+                    <EmojiPicker
+                        data={emojiData}
+                        onEmojiSelect={handleEmojiSelect}
+                        theme="dark"
+                        set="native"
+                        previewPosition="none"
+                        skinTonePosition="none"
+                    />
+                </div>
+            )}
+
+            {/* Reply Preview */}
+            {replyingTo && (
+                <div className="flex items-center gap-3 mb-3 mx-1 px-4 py-2 bg-white/5 rounded-xl">
+                    <div className="flex items-center gap-2 text-blue-400">
+                        <Reply className="w-4 h-4" />
+                        <span className="text-xs font-medium">Replying to {replyingTo.user}</span>
+                    </div>
+                    <p className="flex-1 text-xs text-white/50 truncate">
+                        {replyingTo.text}
+                    </p>
+                    <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => setReplyingTo(null)}
+                        className="h-6 w-6 text-white/50 hover:text-white hover:bg-white/10 rounded-full"
+                    >
+                        <X className="w-3.5 h-3.5" />
+                    </Button>
+                </div>
+            )}
+
+            {/* Voice recording banner */}
+            {isRecording && (
+                <div className="flex items-center gap-3 mb-3 mx-1 px-4 py-2 bg-red-500/10 border border-red-500/30 rounded-xl">
+                    <span className="size-2 rounded-full bg-red-500 animate-pulse" />
+                    <span className="text-red-400 text-sm font-medium flex-1">
+                        Recording {formatRecDuration(recordingSeconds)}
+                    </span>
+                    <button
+                        onClick={cancelRecording}
+                        className="text-white/50 hover:text-white text-xs"
+                    >
+                        Cancel
+                    </button>
+                </div>
+            )}
+
+            {/* Input Area */}
+            <div className="flex items-center gap-2">
+                {/* Text Input Container */}
+                <div className="flex-1 flex items-center bg-[#0E0F18] rounded-full px-3 min-h-[44px] border border-white/[0.06]">
+                    {/* Emoji Button */}
+                    <button
+                        onClick={() => setShowEmojiPicker((v) => !v)}
+                        className={cn(
+                            "p-1.5 transition-colors",
+                            showEmojiPicker ? "text-yellow-400" : "text-white/70 hover:text-white"
+                        )}
+                        title="Emoji"
+                    >
+                        <Smile className="w-6 h-6" />
+                    </button>
+
+                    <textarea
+                        ref={textareaRef}
+                        value={text}
+                        onChange={(e) => setText(e.target.value)}
+                        onKeyDown={onKeyDown}
+                        disabled={disabled || isRecording}
+                        placeholder={
+                            isRecording ? "Recording voice message…" :
+                            isUploading ? "Uploading..." :
+                            replyingTo ? `Reply to ${replyingTo.user}...` :
+                            "Message..."
+                        }
+                        rows={1}
+                        className={cn(
+                            "flex-1 max-h-[100px] min-h-[24px] resize-none bg-transparent py-2.5 px-2",
+                            "text-white placeholder:text-white/40 text-[15px] leading-normal",
+                            "focus:outline-none",
+                            "scrollbar-thin scrollbar-thumb-white/10"
+                        )}
+                    />
+
+                    {/* Right side icons */}
+                    {text.trim() ? (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={handleSendText}
+                            disabled={disabled}
+                            className="h-8 px-3 text-[#0095F6] hover:text-white hover:bg-transparent font-semibold text-sm"
+                        >
+                            Send
+                        </Button>
+                    ) : isRecording ? (
+                        /* Stop recording → send */
+                        <button
+                            onClick={stopRecording}
+                            className="p-1.5 text-red-400 hover:text-red-300 transition-colors"
+                            title="Send voice message"
+                        >
+                            <Square className="w-6 h-6 fill-current" />
+                        </button>
+                    ) : (
+                        <div className="flex items-center gap-1">
+                            {/* Mic: start/stop recording */}
+                            <button
+                                onClick={startRecording}
+                                disabled={disabled}
+                                className="p-1.5 text-white/70 hover:text-white transition-colors disabled:opacity-40"
+                                title="Voice message"
+                            >
+                                <Mic className="w-6 h-6" />
+                            </button>
+                            <RichMediaSharing onSendMedia={handleSendMedia} className="p-1.5 text-white/70 hover:text-white" />
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
