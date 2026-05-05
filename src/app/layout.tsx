@@ -9,7 +9,9 @@ import { extractRouterConfig } from "uploadthing/server";
 import { fileRouter } from "./api/uploadthing/core";
 import "./globals.css";
 import "stream-chat-react/dist/css/v2/index.css";
+import "@stream-io/video-react-sdk/dist/css/styles.css";
 import "./stream-chat-overrides.css";
+import "./stream-video-overrides.css";
 import ReactQueryProvider from "./ReactQueryProvider";
 
 const geistSans = localFont({
@@ -35,9 +37,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <link rel="icon" href="./favicon.ico" sizes="any" />
-      <body className={cn(geistSans.variable, geistMono.variable, "threads")}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={cn(geistSans.variable, geistMono.variable)} suppressHydrationWarning>
         <NextSSRPlugin routerConfig={extractRouterConfig(fileRouter)} />
         <ErrorBoundary>
           <ReactQueryProvider>

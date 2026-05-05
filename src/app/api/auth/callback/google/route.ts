@@ -45,23 +45,28 @@ export async function GET(req: NextRequest) {
       email: googleUser.email
     });
 
-    const existingUser = await prisma.user.findUnique({
-      where: {
-        googleId: googleUser.id,
-      },
+    // Check by googleId first
+    let existingUser = await prisma.user.findUnique({
+      where: { googleId: googleUser.id },
     });
+
+    // If no user found by googleId, check by email (user may have signed up with email/password)
+    if (!existingUser && googleUser.email) {
+      const userByEmail = await prisma.user.findUnique({
+        where: { email: googleUser.email },
+      });
+      if (userByEmail) {
+        // Link the Google account to the existing email-based user
+        existingUser = await prisma.user.update({
+          where: { id: userByEmail.id },
+          data: { googleId: googleUser.id },
+        });
+        console.log("🔗 Google OAuth: Linked Google account to existing email user:", existingUser.username);
+      }
+    }
 
     if (existingUser) {
       console.log("✅ Google OAuth: Existing user found:", existingUser.username);
-      
-      // Update existing user with email if missing
-      if (!existingUser.email && googleUser.email) {
-        console.log("📧 Google OAuth: Updating existing user with email:", googleUser.email);
-        await prisma.user.update({
-          where: { id: existingUser.id },
-          data: { email: googleUser.email }
-        });
-      }
 
       const session = await lucia.createSession(existingUser.id, {});
       const sessionCookie = lucia.createSessionCookie(session.id);
@@ -93,7 +98,7 @@ export async function GET(req: NextRequest) {
           id: userId,
           username,
           displayName: googleUser.name,
-          email: googleUser.email, // Save the email!
+          email: googleUser.email,
           googleId: googleUser.id,
         },
       });

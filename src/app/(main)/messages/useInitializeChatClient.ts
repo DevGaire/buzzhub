@@ -1,4 +1,4 @@
-import kyInstance from "@/lib/ky";
+import { getStreamToken } from "./streamToken";
 import { withRetry, handleError } from "@/lib/error-handling";
 import { toast } from "@/components/ui/use-toast";
 import { useEffect, useState, useCallback } from "react";
@@ -30,10 +30,8 @@ export default function useInitializeChatClient() {
       // Use retry logic for connection
       await withRetry(
         async () => {
-          const tokenResponse = await kyInstance
-            .get("/api/get-token")
-            .json<{ token: string }>();
-          
+          const token = await getStreamToken();
+
           await client.connectUser(
             {
               id: user.id,
@@ -41,7 +39,7 @@ export default function useInitializeChatClient() {
               name: user.displayName,
               image: user.avatarUrl || undefined,
             },
-            tokenResponse.token
+            token
           );
           
           return client;

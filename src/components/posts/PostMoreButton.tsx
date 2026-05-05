@@ -1,5 +1,9 @@
+"use client";
+
+import { useSession } from "@/app/(main)/SessionProvider";
 import { PostData } from "@/lib/types";
-import { MoreHorizontal, Trash2, Edit, Lock, Users, Globe } from "lucide-react";
+import kyInstance from "@/lib/ky";
+import { MoreHorizontal, Trash2, Edit, Lock, Users, Globe, Pin, PinOff } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../ui/button";
 import {
@@ -11,38 +15,46 @@ import {
 } from "../ui/dropdown-menu";
 import DeletePostDialog from "./DeletePostDialog";
 import EditPostDialog from "./EditPostDialog";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "../ui/use-toast";
 
 interface PostMoreButtonProps {
   post: PostData;
   className?: string;
 }
 
-export default function PostMoreButton({
-  post,
-  className,
-}: PostMoreButtonProps) {
+export default function PostMoreButton({ post, className }: PostMoreButtonProps) {
+  const { user } = useSession();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
 
+  const isPinned = user.pinnedPostId === post.id;
+
+  const { mutate: togglePin, isPending: isPinning } = useMutation({
+    mutationFn: () =>
+      kyInstance.post(`/api/posts/${post.id}/pin`).json<{ pinned: boolean }>(),
+    onSuccess: ({ pinned }) => {
+      toast({ description: pinned ? "Post pinned to your profile" : "Post unpinned" });
+      queryClient.invalidateQueries({ queryKey: ["user-posts"] });
+    },
+    onError: () => toast({ variant: "destructive", description: "Failed to update pin" }),
+  });
+
   const getVisibilityIcon = () => {
     switch (post.visibility) {
-      case "ONLY_ME":
-        return <Lock className="size-4" />;
-      case "FOLLOWERS":
-        return <Users className="size-4" />;
-      default:
-        return <Globe className="size-4" />;
+      case "ONLY_ME": return <Lock className="size-4" />;
+      case "FOLLOWERS": return <Users className="size-4" />;
+      default: return <Globe className="size-4" />;
     }
   };
 
   const getVisibilityLabel = () => {
     switch (post.visibility) {
-      case "ONLY_ME":
-        return "Only me";
-      case "FOLLOWERS":
-        return "Followers only";
-      default:
-        return "Public";
+      case "ONLY_ME": return "Only me";
+      case "FOLLOWERS": return "Followers only";
+      default: return "Public";
     }
   };
 
@@ -59,6 +71,15 @@ export default function PostMoreButton({
             <span className="flex items-center gap-3">
               <Edit className="size-4" />
               Edit post
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => togglePin()}
+            disabled={isPinning}
+          >
+            <span className="flex items-center gap-3">
+              {isPinned ? <PinOff className="size-4" /> : <Pin className="size-4" />}
+              {isPinned ? "Unpin from profile" : "Pin to profile"}
             </span>
           </DropdownMenuItem>
           <DropdownMenuItem disabled>

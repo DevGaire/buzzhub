@@ -12,19 +12,33 @@ export default async function MenuBar({ className }: MenuBarProps) {
 
   if (!user) return null;
 
+  // Ensure user exists in Stream (needed after switching Stream apps)
+  await streamServerClient.upsertUser({
+    id: user.id,
+    username: user.username,
+    name: user.displayName,
+    image: user.avatarUrl ?? undefined,
+  }).catch(() => {});
+
   const [unreadNotificationsCount, unreadMessagesCount] = await Promise.all([
     prisma.notification.count({
-      where: {
-        recipientId: user.id,
-        read: false,
-      },
+      where: { recipientId: user.id, read: false },
     }),
-    (await streamServerClient.getUnreadCount(user.id)).total_unread_count,
+    streamServerClient
+      .getUnreadCount(user.id)
+      .then((r) => r.total_unread_count)
+      .catch(() => 0),
   ]);
 
   return (
     <MenuBarClient
       className={className}
+      user={{
+        id: user.id,
+        displayName: user.displayName,
+        username: user.username,
+        avatarUrl: user.avatarUrl ?? null,
+      }}
       unreadNotificationsCount={unreadNotificationsCount}
       unreadMessagesCount={unreadMessagesCount}
     />

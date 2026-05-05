@@ -27,8 +27,9 @@ export default function StoriesBar({ className }: StoriesBarProps) {
     const { data, isLoading, error } = useQuery<{ stories: StoryData[] }>({
         queryKey: ["stories"],
         queryFn: () => kyInstance.get("/api/stories").json(),
-        refetchInterval: 60_000, // Refresh every minute
-        staleTime: 30_000, // Consider data stale after 30 seconds
+        refetchInterval: 60_000,
+        staleTime: 30_000,
+        retry: false,
     });
 
     const stories = data?.stories || [];
@@ -79,13 +80,18 @@ export default function StoriesBar({ className }: StoriesBarProps) {
 
     if (error) {
         return (
-            <div className={cn("p-4", className)}>
-                <ComponentErrorBoundary componentName="Stories">
-                    <div className="text-center text-muted-foreground">
-                        <p className="text-sm">Unable to load stories</p>
-                    </div>
-                </ComponentErrorBoundary>
-            </div>
+            <ComponentErrorBoundary componentName="Stories">
+                <div className={cn("flex items-center gap-4 overflow-x-auto p-4", className)}>
+                    <StoryCircle
+                        isAddStory
+                        onClick={() => setShowCreateModal(true)}
+                    />
+                    <StoryCreateModal
+                        isOpen={showCreateModal}
+                        onClose={() => setShowCreateModal(false)}
+                    />
+                </div>
+            </ComponentErrorBoundary>
         );
     }
 

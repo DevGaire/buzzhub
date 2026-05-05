@@ -9,7 +9,7 @@ import Placeholder from "@tiptap/extension-placeholder";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useDropzone } from "@uploadthing/react";
-import { ImageIcon, Loader2, X } from "lucide-react";
+import { BarChart2, ImageIcon, Loader2, Plus, Trash2, X } from "lucide-react";
 import Image from "next/image";
 import { ClipboardEvent, useEffect, useRef, useState } from "react";
 import { useSubmitPostMutation } from "./mutations";
@@ -26,6 +26,7 @@ export default function PostEditor() {
   const [attachmentOrder, setAttachmentOrder] = useState<string[]>([]);
   const [feeling, setFeeling] = useState<{ type: 'feeling' | 'activity'; emoji: string; label: string } | null>(null);
   const [showFeelingPicker, setShowFeelingPicker] = useState(false);
+  const [poll, setPoll] = useState<{ options: string[]; expiresInHours: number } | null>(null);
 
   const {
     startUpload,
@@ -88,6 +89,9 @@ export default function PostEditor() {
         content: contentToSend,
         mediaIds: attachments.map((a) => a.mediaId).filter(Boolean) as string[],
         visibility,
+        poll: poll
+          ? { options: poll.options.filter((o) => o.trim()), expiresInHours: poll.expiresInHours }
+          : undefined,
       },
       {
         onSuccess: () => {
@@ -95,6 +99,7 @@ export default function PostEditor() {
           resetMediaUploads();
           setFeeling(null);
           setShowFeelingPicker(false);
+          setPoll(null);
         },
       },
     );
@@ -230,6 +235,48 @@ export default function PostEditor() {
               />
             </div>
           )}
+          {poll && (
+            <div className="mt-3 rounded-xl border bg-muted/30 p-3 space-y-2">
+              <div className="flex items-center justify-between text-sm font-medium">
+                <span className="flex items-center gap-2"><BarChart2 className="size-4" /> Poll</span>
+                <button onClick={() => setPoll(null)} className="text-muted-foreground hover:text-foreground"><X className="size-4" /></button>
+              </div>
+              {poll.options.map((opt, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input
+                    value={opt}
+                    onChange={(e) => setPoll((p) => p ? { ...p, options: p.options.map((o, j) => j === i ? e.target.value : o) } : null)}
+                    placeholder={`Option ${i + 1}`}
+                    maxLength={60}
+                    className="flex-1 rounded-lg border bg-background px-3 py-1.5 text-sm"
+                  />
+                  {poll.options.length > 2 && (
+                    <button onClick={() => setPoll((p) => p ? { ...p, options: p.options.filter((_, j) => j !== i) } : null)}>
+                      <Trash2 className="size-4 text-muted-foreground hover:text-destructive" />
+                    </button>
+                  )}
+                </div>
+              ))}
+              {poll.options.length < 4 && (
+                <button
+                  onClick={() => setPoll((p) => p ? { ...p, options: [...p.options, ""] } : null)}
+                  className="flex items-center gap-1 text-xs text-primary hover:underline"
+                >
+                  <Plus className="size-3" /> Add option
+                </button>
+              )}
+              <select
+                value={poll.expiresInHours}
+                onChange={(e) => setPoll((p) => p ? { ...p, expiresInHours: Number(e.target.value) } : null)}
+                className="mt-1 rounded-md border bg-background px-2 py-1 text-xs"
+              >
+                <option value={24}>1 day</option>
+                <option value={72}>3 days</option>
+                <option value={168}>7 days</option>
+                <option value={0}>No expiry</option>
+              </select>
+            </div>
+          )}
           <div className="mt-3 flex items-center justify-between border-t pt-3">
             <div className="flex items-center gap-2">
               {isUploading && (
@@ -243,6 +290,16 @@ export default function PostEditor() {
                 disabled={isUploading || attachments.length >= 5}
                 showLabel
               />
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn("h-8 gap-2", poll ? "text-primary" : "text-primary")}
+                onClick={() => setPoll(poll ? null : { options: ["", ""], expiresInHours: 24 })}
+                title="Add poll"
+              >
+                <BarChart2 size={18} />
+                <span className="text-xs">Poll</span>
+              </Button>
               <div className="relative">
                 <Button
                   variant="ghost"
@@ -298,7 +355,11 @@ export default function PostEditor() {
             <LoadingButton
               onClick={onSubmit}
               loading={mutation.isPending}
-              disabled={!input.trim() || isUploading}
+              disabled={
+                !input.trim() ||
+                isUploading ||
+                (!!poll && poll.options.filter((o) => o.trim()).length < 2)
+              }
               className="min-w-20"
             >
               Post

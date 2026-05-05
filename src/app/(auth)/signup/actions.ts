@@ -54,22 +54,26 @@ export async function signUp(
       };
     }
 
-    await prisma.$transaction(async (tx) => {
-      await tx.user.create({
-        data: {
-          id: userId,
-          username,
-          displayName: username,
-          email,
-          passwordHash,
-        },
-      });
+    await prisma.user.create({
+      data: {
+        id: userId,
+        username,
+        displayName: username,
+        email,
+        passwordHash,
+      },
+    });
+
+    // Sync with Stream Chat — non-critical, don't let it block or roll back user creation
+    try {
       await streamServerClient.upsertUser({
         id: userId,
         username,
         name: username,
       });
-    });
+    } catch (streamErr) {
+      console.error("Stream upsert failed during signup (non-fatal):", streamErr);
+    }
 
     // Issue email verification token
     const token = randomBytes(32).toString("hex");

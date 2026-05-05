@@ -2,6 +2,7 @@
 
 import LoadingButton from "@/components/LoadingButton";
 import { PasswordInput } from "@/components/PasswordInput";
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -12,6 +13,7 @@ import {
 } from "@/components/ui/form";
 import { resetPasswordSchema, ResetPasswordValues } from "@/lib/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { resetPassword } from "./actions";
@@ -38,9 +40,10 @@ export default function ResetPasswordForm({ token, isOAuthUser = false }: ResetP
       const { error, success } = await resetPassword({ ...values, token });
       if (error) setError(error);
       if (success) {
-        setSuccess(isOAuthUser 
-          ? "Password set successfully! You can now sign in with email/password or Google."
-          : success
+        setSuccess(
+          isOAuthUser
+            ? "Password set successfully! You can now sign in with email/password or Google."
+            : success,
         );
       }
     });
@@ -50,28 +53,38 @@ export default function ResetPasswordForm({ token, isOAuthUser = false }: ResetP
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
         {error && <p className="text-center text-destructive">{error}</p>}
-        {success && <p className="text-center text-green-600">{success}</p>}
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>
-                {isOAuthUser ? "Set your password" : "New password"}
-              </FormLabel>
-              <FormControl>
-                <PasswordInput 
-                  placeholder={isOAuthUser ? "Choose a password" : "New password"} 
-                  {...field} 
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <LoadingButton loading={isPending} type="submit" className="w-full">
-          {isOAuthUser ? "Set Password" : "Reset Password"}
-        </LoadingButton>
+        {success ? (
+          <div className="space-y-3 text-center">
+            <p className="text-green-600">{success}</p>
+            <Button className="w-full" asChild>
+              <Link href="/login">Go to login</Link>
+            </Button>
+          </div>
+        ) : (
+          <>
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    {isOAuthUser ? "Set your password" : "New password"}
+                  </FormLabel>
+                  <FormControl>
+                    <PasswordInput
+                      placeholder={isOAuthUser ? "Choose a password" : "New password"}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <LoadingButton loading={isPending} type="submit" className="w-full">
+              {isOAuthUser ? "Set Password" : "Reset Password"}
+            </LoadingButton>
+          </>
+        )}
       </form>
     </Form>
   );

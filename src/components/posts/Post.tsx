@@ -12,9 +12,12 @@ import Comments from "../comments/Comments";
 import Linkify from "../Linkify";
 import UserAvatar from "../UserAvatar";
 import UserTooltip from "../UserTooltip";
+import VerifiedBadge from "../VerifiedBadge";
 import BookmarkButton from "./BookmarkButton";
 import LikeButton from "./LikeButton";
 import PostMoreButton from "./PostMoreButton";
+import PollDisplay from "./PollDisplay";
+import QuotePostDisplay from "./QuotePostDisplay";
 import { useMutation, useQueryClient, QueryFilters, InfiniteData } from "@tanstack/react-query";
 import { useToast } from "../ui/use-toast";
 import { repostPost } from "./actions";
@@ -35,7 +38,7 @@ export default function Post({ post }: PostProps) {
   };
 
   return (
-    <article className="group/post space-y-3 rounded-2xl bg-card p-5 shadow-sm">
+    <article className="group/post space-y-3 rounded-2xl bg-card p-5 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex justify-between gap-3">
         <div className="flex flex-wrap gap-3">
           <UserTooltip user={post.user}>
@@ -47,9 +50,10 @@ export default function Post({ post }: PostProps) {
             <UserTooltip user={post.user}>
               <Link
                 href={`/users/${post.user.username}`}
-                className="block font-medium hover:underline"
+                className="flex items-center gap-1 font-medium hover:underline"
               >
                 {post.user.displayName}
+                {post.user.isVerified && <VerifiedBadge size="sm" />}
               </Link>
             </UserTooltip>
             <Link
@@ -73,6 +77,12 @@ export default function Post({ post }: PostProps) {
       </Linkify>
       {!!post.attachments.length && (
         <MediaPreviews attachments={post.attachments} />
+      )}
+      {post.poll && (
+        <PollDisplay poll={post.poll as any} postId={post.id} />
+      )}
+      {post.quotedPost && (
+        <QuotePostDisplay post={post.quotedPost as any} />
       )}
       {!!post.comments?.length && (
         <LatestCommentPreview 

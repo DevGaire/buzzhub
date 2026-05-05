@@ -2,11 +2,10 @@ import { validateRequest } from "@/auth";
 import FollowButton from "@/components/FollowButton";
 import FollowerCount from "@/components/FollowerCount";
 import Linkify from "@/components/Linkify";
-import TrendsSidebar from "@/components/TrendsSidebar";
 import UserAvatar from "@/components/UserAvatar";
-import UserAvatarWithStory from "@/components/UserAvatarWithStory";
+import VerifiedBadge from "@/components/VerifiedBadge";
 import prisma from "@/lib/prisma";
-import { FollowerInfo, getUserDataSelect, UserData } from "@/lib/types";
+import { FollowerInfo, getUserDataSelect, UserData, getPostDataInclude } from "@/lib/types";
 import { formatNumber } from "@/lib/utils";
 import { formatDate } from "date-fns";
 import { Metadata } from "next";
@@ -14,124 +13,119 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 import EditProfileButton from "./EditProfileButton";
 import UserPosts from "./UserPosts";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, Pin } from "lucide-react";
 import ProfileStoryAvatar from "./ProfileStoryAvatar";
+import BlockButton from "./BlockButton";
+import Post from "@/components/posts/Post";
+import Image from "next/image";
 
 interface PageProps {
   params: { username: string };
 }
 
 const getUser = cache(async (username: string, loggedInUserId: string) => {
-  // First try exact match
-  let user = await prisma.user.findFirst({
-    where: {
-      username: {
-        equals: username,
-        mode: "insensitive",
-      },
-    },
+  const user = await prisma.user.findFirst({
+    where: { username: { equals: username, mode: "insensitive" } },
     select: getUserDataSelect(loggedInUserId),
   });
 
-  // If not found and it's "admin", try to find the current user
-  if (!user && username.toLowerCase() === 'admin') {
-    user = await prisma.user.findUnique({
-      where: { id: loggedInUserId },
-      select: getUserDataSelect(loggedInUserId),
-    });
-  }
-
   if (!user) {
-    console.error(`User not found: ${username}`);
-    // Log available usernames for debugging
-    const users = await prisma.user.findMany({
-      select: { username: true },
-      take: 5,
-    });
-    console.log('Available usernames:', users.map(u => u.username));
+    if (username.toLowerCase() === "admin") {
+      return prisma.user.findUnique({
+        where: { id: loggedInUserId },
+        select: getUserDataSelect(loggedInUserId),
+      });
+    }
     notFound();
   }
 
   return user;
 });
 
-export async function generateMetadata({
-  params: { username },
-}: PageProps): Promise<Metadata> {
+export async function generateMetadata({ params: { username } }: PageProps): Promise<Metadata> {
   const { user: loggedInUser } = await validateRequest();
-
   if (!loggedInUser) return {};
-
   const user = await getUser(username, loggedInUser.id);
-
-  return {
-    title: `${user.displayName} (@${user.username})`,
-  };
+  return { title: `${user?.displayName} (@${user?.username})` };
 }
 
 export default async function Page({ params: { username } }: PageProps) {
   const { user: loggedInUser } = await validateRequest();
-
   if (!loggedInUser) {
-    return (
-      <p className="text-destructive">
-        You&apos;re not authorized to view this page.
-      </p>
-    );
+    return <p className="text-destructive">You&apos;re not authorized to view this page.</p>;
   }
 
   const user = await getUser(username, loggedInUser.id);
+  if (!user) notFound();
+
+  // Fetch pinned post if exists
+  const pinnedPost = user.pinnedPostId
+    ? await prisma.post.findUnique({
+        where: { id: user.pinnedPostId },
+        include: getPostDataInclude(loggedInUser.id),
+      })
+    : null;
 
   return (
-    <main className="mx-auto flex w-full max-w-screen-xl min-w-0 gap-3 px-2 sm:gap-5 sm:px-4">
-      <div className="w-full min-w-0 space-y-5">
-        <UserProfile user={user} loggedInUserId={loggedInUser.id} />
-        <div className="rounded-2xl bg-card p-5 shadow-sm">
-          <h2 className="text-center text-2xl font-bold">
-            {user.displayName}&apos;s posts
-          </h2>
-        </div>
-        <UserPosts userId={user.id} />
+    <div className="space-y-4">
+      <UserProfile user={user} loggedInUserId={loggedInUser.id} pinnedPost={pinnedPost} />
+      <div className="rounded-2xl bg-card p-5 shadow-sm">
+        <h2 className="text-center text-2xl font-bold">{user.displayName}&apos;s posts</h2>
       </div>
-      <TrendsSidebar />
-    </main>
+      <UserPosts userId={user.id} />
+    </div>
   );
 }
 
 interface UserProfileProps {
   user: UserData;
   loggedInUserId: string;
+  pinnedPost: any | null;
 }
 
-async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
+async function UserProfile({ user, loggedInUserId, pinnedPost }: UserProfileProps) {
   const followerInfo: FollowerInfo = {
     followers: user._count.followers,
-    isFollowedByUser: user.followers.some(
-      ({ followerId }) => followerId === loggedInUserId,
-    ),
+    isFollowedByUser: user.followers.some(({ followerId }) => followerId === loggedInUserId),
   };
+
+  const isOwnProfile = user.id === loggedInUserId;
 
   return (
     <div className="overflow-hidden rounded-2xl bg-card shadow-sm">
-      <div className="h-24 w-full bg-gradient-to-r from-primary/10 via-transparent to-secondary/10" />
-      <div className="-mt-12 flex flex-col gap-4 p-5 sm:flex-row sm:items-end">
+      {/* Cover photo */}
+      <div className="relative h-36 w-full sm:h-48">
+        {user.coverUrl ? (
+          <Image src={user.coverUrl} alt="Cover" fill className="object-cover" />
+        ) : (
+          <div className="h-full w-full bg-gradient-to-r from-primary/20 via-primary/10 to-secondary/20" />
+        )}
+      </div>
+
+      <div className="-mt-14 flex flex-col gap-4 p-5 sm:flex-row sm:items-end">
         <ProfileStoryAvatar
           userId={user.id}
           username={user.username}
           avatarUrl={user.avatarUrl}
-          size={128}
+          size={112}
         />
         <div className="flex w-full flex-col sm:flex-1">
           <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
             <div>
-              <h1 className="text-2xl font-extrabold leading-tight">{user.displayName}</h1>
+              <div className="flex items-center gap-1.5">
+                <h1 className="text-2xl font-extrabold leading-tight">{user.displayName}</h1>
+                {user.isVerified && <VerifiedBadge size="lg" />}
+              </div>
               <div className="text-muted-foreground">@{user.username}</div>
             </div>
-            <div className="ms-auto">
-              {user.id === loggedInUserId ? (
+            <div className="ms-auto flex items-center gap-2">
+              {isOwnProfile ? (
                 <EditProfileButton user={user} />
               ) : (
-                <FollowButton userId={user.id} initialState={followerInfo} />
+                <>
+                  <BlockButton userId={user.id} />
+                  <FollowButton userId={user.id} initialState={followerInfo} />
+                </>
               )}
             </div>
           </div>
@@ -148,6 +142,7 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
           </div>
         </div>
       </div>
+
       {user.bio && (
         <>
           <hr className="border-border/60" />
@@ -155,6 +150,19 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
             <Linkify>
               <div className="overflow-hidden whitespace-pre-line break-words">{user.bio}</div>
             </Linkify>
+          </div>
+        </>
+      )}
+
+      {pinnedPost && (
+        <>
+          <hr className="border-border/60" />
+          <div className="p-5">
+            <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <Pin className="size-3.5" />
+              Pinned post
+            </div>
+            <Post post={pinnedPost} />
           </div>
         </>
       )}

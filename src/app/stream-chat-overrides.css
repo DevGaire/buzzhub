@@ -1,5 +1,5 @@
 /* ================================================
-   CLEAN INSTAGRAM CHAT UI - SIMPLIFIED
+   INSTAGRAM-STYLE CHAT UI
    ================================================ */
 
 /* Base Reset */
@@ -11,8 +11,11 @@
 }
 
 /* Main Container */
-.str-chat__container {
-  background: #000000;
+.str-chat,
+.str-chat__container,
+.str-chat__theme-dark,
+.str-chat__theme-light {
+  background: #000000 !important;
   color: #ffffff;
   height: 100%;
 }
@@ -20,22 +23,12 @@
 /* Channel List Sidebar */
 .str-chat__channel-list {
   background: #000000;
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.str-chat__channel-preview-container {
-  padding: 12px 16px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.str-chat__channel-preview-container:hover {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.str-chat__channel-preview-container--selected {
-  background: rgba(255, 255, 255, 0.08);
-  border-left: 3px solid #666666;
+/* Hide default stream-chat search - we use custom */
+.str-chat__channel-search {
+  display: none;
 }
 
 /* Main Chat Area */
@@ -44,183 +37,114 @@
   background: #000000;
 }
 
-/* Header */
-.str-chat__header-livestream,
-.str-chat__channel-header {
-  background: #000000;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 16px;
-}
-
 /* Message List */
 .str-chat__list,
-.str-chat__message-list {
+.str-chat__message-list,
+.str-chat__virtual-list {
+  background: #000000 !important;
+  padding: 16px 20px;
+}
+
+/* Messages Container */
+.str-chat__message-list-scroll {
   background: #000000;
-  padding: 20px;
 }
 
 /* Messages */
-.str-chat__message {
-  margin-bottom: 12px;
+.str-chat__message,
+.str-chat__message-simple {
+  margin-bottom: 2px;
   display: flex;
   align-items: flex-end;
+  padding: 0;
 }
 
-/* Message Bubbles */
-.str-chat__message-text-inner {
-  padding: 8px 14px;
+/* Group consecutive messages */
+.str-chat__li {
+  margin-bottom: 2px;
+}
+
+.str-chat__li--top,
+.str-chat__li--single {
+  margin-top: 8px;
+}
+
+/* Message Bubbles - Base */
+.str-chat__message-text-inner,
+.str-chat__message-simple-text-inner {
+  padding: 10px 14px;
   border-radius: 18px;
-  max-width: 70%;
-  min-width: fit-content;
-  width: fit-content;
-  font-size: 14px;
+  max-width: min(75%, 400px);
+  font-size: 15px;
   line-height: 1.4;
-  white-space: nowrap;
-  overflow-wrap: normal;
-  word-break: keep-all;
-  display: inline-block;
-}
-
-/* Allow wrapping for longer messages */
-.str-chat__message-text-inner {
-  white-space: normal;
   word-wrap: break-word;
   word-break: normal;
-  max-width: min(70%, 450px);
 }
 
 /* Fix paragraph tags inside messages */
-.str-chat__message-text-inner p {
+.str-chat__message-text-inner p,
+.str-chat__message-simple-text-inner p {
   display: inline;
   margin: 0;
   padding: 0;
-  white-space: inherit;
 }
 
-/* Ensure short phrases stay together */
-.str-chat__message-text {
-  max-width: min(70%, 450px);
-  display: flex;
-  flex-direction: column;
-  align-items: inherit;
-}
-
-/* Sent Messages */
-.str-chat__message--me {
+/* Sent Messages (Me) - Instagram blue */
+.str-chat__message--me,
+.str-chat__message-simple--me {
   justify-content: flex-end;
 }
 
-.str-chat__message--me .str-chat__message-text-inner {
-  background: #363636;
-  color: #040303ff;
+.str-chat__message--me .str-chat__message-text-inner,
+.str-chat__message--me .str-chat__message-simple-text-inner,
+.str-chat__message-simple--me .str-chat__message-text-inner,
+.str-chat__message-simple--me .str-chat__message-simple-text-inner {
+  background: linear-gradient(135deg, #0095F6, #0077E6, #0066CC) !important;
+  color: #ffffff !important;
   border-radius: 18px 18px 4px 18px;
   margin-left: auto;
+  padding: 10px 14px;
 }
 
-/* Received Messages - Unique Style */
-.str-chat__message--other {
+/* Received Messages (Other) - Dark gray like Instagram */
+.str-chat__message--other,
+.str-chat__message-simple--other {
   justify-content: flex-start;
 }
 
-.str-chat__message--other .str-chat__message-text-inner {
-  background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
-  color: #ffffff;
+.str-chat__message--other .str-chat__message-text-inner,
+.str-chat__message--other .str-chat__message-simple-text-inner,
+.str-chat__message-simple--other .str-chat__message-text-inner,
+.str-chat__message-simple--other .str-chat__message-simple-text-inner {
+  background: #262626 !important;
+  color: #f5f5f5 !important;
   border-radius: 18px 18px 18px 4px;
-  border: 1px solid rgba(100, 200, 255, 0.2);
-  box-shadow: 0 2px 8px rgba(100, 200, 255, 0.1);
-  position: relative;
-  overflow: hidden;
+  padding: 10px 14px;
 }
 
-/* Add subtle glow effect for received messages */
-.str-chat__message--other .str-chat__message-text-inner::before {
-  content: '';
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  bottom: -2px;
-  background: linear-gradient(45deg, #00d4ff, #0066ff, #00d4ff);
-  border-radius: 18px;
-  opacity: 0;
-  z-index: -1;
-  transition: opacity 0.3s ease;
+/* Hide avatars in chat like Instagram */
+.str-chat__avatar,
+.str-chat__message-sender-avatar {
+  display: none !important;
 }
 
-.str-chat__message--other .str-chat__message-text-inner:hover::before {
-  opacity: 0.3;
-  animation: glow 2s ease-in-out infinite;
-}
-
-@keyframes glow {
-  0%, 100% { opacity: 0.2; }
-  50% { opacity: 0.4; }
-}
-
-/* Avatars */
-.str-chat__avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  margin-right: 8px;
-}
-
-.str-chat__message--me .str-chat__avatar {
+/* Message metadata */
+.str-chat__message-data,
+.str-chat__message-simple-data {
   display: none;
 }
 
-/* Input Area */
-.str-chat__input-flat {
-  background: #000000;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 12px;
-}
-
-.str-chat__textarea textarea {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
-  padding: 10px 16px;
-  color: #ffffff;
-  font-size: 14px;
-  resize: none;
-  width: 100%;
-}
-
-.str-chat__textarea textarea::placeholder {
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.str-chat__textarea textarea:focus {
-  outline: none;
-  border-color: rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.08);
-}
-
-/* Send Button */
-.str-chat__send-button {
-  background: transparent;
-  color: #ffffff;
-  border: none;
-  padding: 8px;
-  cursor: pointer;
+/* Timestamps - only show on hover */
+.str-chat__message-timestamp {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 4px;
+  opacity: 0;
   transition: opacity 0.2s;
 }
 
-.str-chat__send-button:hover {
-  opacity: 0.7;
-}
-
-.str-chat__send-button:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-/* Timestamps */
-.str-chat__message-timestamp {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.3);
-  margin-top: 2px;
+.str-chat__message:hover .str-chat__message-timestamp {
+  opacity: 1;
 }
 
 /* Reactions */
@@ -233,21 +157,16 @@
 .str-chat__reaction-list-item {
   background: rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  padding: 2px 6px;
-  font-size: 12px;
+  padding: 4px 8px;
+  font-size: 13px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
 }
 
 .str-chat__reaction-list-item:hover {
   background: rgba(255, 255, 255, 0.15);
-}
-
-.str-chat__reaction-list-item--own {
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid #666666;
 }
 
 /* Typing Indicator */
@@ -255,29 +174,36 @@
   padding: 8px 20px;
   font-size: 13px;
   color: rgba(255, 255, 255, 0.5);
-  font-style: italic;
 }
 
-/* Date Separator */
+/* Date Separator - Instagram style */
 .str-chat__date-separator {
   text-align: center;
-  margin: 20px 0;
+  margin: 24px 0;
   color: rgba(255, 255, 255, 0.5);
   font-size: 12px;
 }
 
-/* Scrollbar */
-.str-chat__message-list::-webkit-scrollbar {
-  width: 6px;
+.str-chat__date-separator-date {
+  background: transparent;
+  padding: 4px 12px;
 }
 
-.str-chat__message-list::-webkit-scrollbar-track {
+/* Scrollbar - thin and minimal */
+.str-chat__message-list::-webkit-scrollbar,
+.str-chat__virtual-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.str-chat__message-list::-webkit-scrollbar-track,
+.str-chat__virtual-list::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.str-chat__message-list::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 3px;
+.str-chat__message-list::-webkit-scrollbar-thumb,
+.str-chat__virtual-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
 }
 
 /* Empty State */
@@ -298,119 +224,95 @@
   color: rgba(255, 255, 255, 0.5);
 }
 
-/* Message Actions */
-.str-chat__message-actions {
-  opacity: 0;
-  transition: opacity 0.2s;
+/* Message Actions - minimal */
+.str-chat__message-actions-box {
+  background: #262626;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
 }
 
-.str-chat__message:hover .str-chat__message-actions {
-  opacity: 1;
+.str-chat__message-actions-list button {
+  color: #ffffff;
 }
 
-/* Unread Badge */
-.str-chat__channel-preview-unread-indicator {
-  background: #666666;
-  color: white;
-  border-radius: 10px;
-  padding: 2px 6px;
-  font-size: 11px;
-  font-weight: 600;
+.str-chat__message-actions-list button:hover {
+  background: rgba(255, 255, 255, 0.1);
 }
 
-/* Override any white or blue backgrounds */
-
-.str-chat [style*="background: blue"],
-.str-chat [style*="background-color: blue"],
-.str-chat [style*="background: #00"],
-.str-chat [style*="background-color: #00"] {
-  background: #000000 !important;
+/* Input - Hide default, we use custom */
+.str-chat__input-flat,
+.str-chat__message-input {
+  display: none;
 }
 
-/* Remove any blue backgrounds from components */
-.bg-blue-50,
-.bg-blue-100,
-.bg-blue-500,
-.bg-blue-600,
-.bg-blue-900,
-.bg-blue-950,
-.dark\\:bg-blue-900,
-.dark\\:bg-blue-950,
-.hover\\:bg-blue-600 {
-  background: transparent !important;
-}
-
-/* Override blue selection states */
-.str-chat__channel-preview-container--selected {
-  background: rgba(255, 255, 255, 0.08);
-  border-left: 3px solid #666666;
-}
-
-/* Remove blue from any hover states */
-*[class*="blue"]:hover {
-  background: rgba(255, 255, 255, 0.05) !important;
-}
-
-/* Ensure black theme everywhere */
-.str-chat,
-.str-chat__theme-dark,
-.str-chat__theme-light {
+/* Window */
+.str-chat__window {
   background: #000000;
 }
 
-/* Text colors - scoped; avoid forcing all descendants to white */
-.str-chat {
-  color: rgba(255, 255, 255, 0.95);
+/* Thread */
+.str-chat__thread {
+  background: #000000;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* Secondary text */
-.str-chat__channel-preview-messenger--last-message,
-.str-chat__typing-indicator,
-.str-chat__date-separator {
-  color: rgba(255, 255, 255, 0.5);
+/* Attachments */
+.str-chat__message-attachment {
+  border-radius: 16px;
+  overflow: hidden;
+  max-width: 300px;
+}
+
+.str-chat__message-attachment-card {
+  background: #262626;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Image attachments */
+.str-chat__message-attachment--image img {
+  border-radius: 16px;
+}
+
+/* Quoted/Reply messages */
+.str-chat__quoted-message-preview {
+  background: rgba(255, 255, 255, 0.05);
+  border-left: 2px solid #3797f0;
+  padding: 8px 12px;
+  margin-bottom: 4px;
+  border-radius: 0 8px 8px 0;
 }
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
-  .str-chat__channel-list {
-    position: absolute;
-    left: -100%;
-    width: 100%;
-    z-index: 100;
-    transition: left 0.3s;
-  }
-  
-  .str-chat__channel-list--open {
-    left: 0;
-  }
-  
-  .str-chat__message-text-inner {
+  .str-chat__message-text-inner,
+  .str-chat__message-simple-text-inner {
     max-width: 85%;
   }
 }
 
-/* Contrast fix: enforce readable text on message bubbles */
-.str-chat__message-text-inner,
-.str-chat__message-simple-text-inner,
-.str-chat__message-bubble,
+/* Override any remaining blue/colored backgrounds */
+.str-chat__channel-preview-container--selected {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Ensure message text is always readable */
+.str-chat__message-text,
 .str-chat__message-simple__text {
-  background-color: #111213 !important;
-  color: #ffffff !important;
+  color: #ffffff;
 }
 
-/* Outgoing (me) message bubble */
-.str-chat__message--me .str-chat__message-text-inner,
-.str-chat__message--me .str-chat__message-simple-text-inner,
-.str-chat__message--me .str-chat__message-bubble,
-.str-chat__message--me .str-chat__message-simple__text {
-  background-color: #2f2f2f !important;
-  color: #ffffff !important;
+/* System messages */
+.str-chat__message--system {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
 }
 
-/* Incoming (other) message bubble keeps gradient if set, but ensure readable text */
-.str-chat__message--other .str-chat__message-text-inner,
-.str-chat__message--other .str-chat__message-simple-text-inner,
-.str-chat__message--other .str-chat__message-bubble,
-.str-chat__message--other .str-chat__message-simple__text {
-  color: #ffffff !important;
+/* New messages separator */
+.str-chat__unread-messages-separator {
+  background: transparent;
+  color: #3797f0;
+  font-size: 12px;
+  padding: 8px;
+  text-align: center;
 }

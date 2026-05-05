@@ -39,6 +39,9 @@ export default function PeopleList({ onPicked }: { onPicked?: () => void }) {
     setStartingChat(otherId);
 
     try {
+      // Ensure the target user exists in Stream before channel creation
+      await fetch(`/api/users/${otherId}/sync-stream`, { method: "POST" }).catch(() => {});
+
       const channel = client.channel("messaging", {
         members: [user.id, otherId],
       });

@@ -55,9 +55,11 @@ export default function FollowButton({
 
   return (
     <Button
-      variant={data.isFollowedByUser ? "secondary" : "default"}
+      variant={data.isFollowedByUser ? "outline" : "default"}
+      size="sm"
       onClick={() => mutate()}
       disabled={isPending}
+      className="rounded-full px-4 text-xs font-semibold"
       onMouseEnter={(e) => {
         if (data.isFollowedByUser) {
           (e.currentTarget as HTMLButtonElement).textContent = "Unfollow";

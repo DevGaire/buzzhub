@@ -64,6 +64,13 @@ export default function NewChatDialog({
 
     const mutation = useMutation({
         mutationFn: async () => {
+            // Sync all selected users into Stream before creating the channel
+            await Promise.allSettled(
+                selectedUsers.map((u) =>
+                    fetch(`/api/users/${u.id}/sync-stream`, { method: "POST" }),
+                ),
+            );
+
             const channel = client.channel("messaging", {
                 members: [loggedInUser.id, ...selectedUsers.map((u) => u.id)],
                 name:

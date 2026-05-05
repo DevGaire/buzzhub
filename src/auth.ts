@@ -20,7 +20,10 @@ export const lucia = new Lucia(adapter, {
       username: databaseUserAttributes.username,
       displayName: databaseUserAttributes.displayName,
       avatarUrl: databaseUserAttributes.avatarUrl,
+      coverUrl: databaseUserAttributes.coverUrl,
       googleId: databaseUserAttributes.googleId,
+      isVerified: databaseUserAttributes.isVerified,
+      pinnedPostId: databaseUserAttributes.pinnedPostId,
     };
   },
 });
@@ -37,7 +40,10 @@ interface DatabaseUserAttributes {
   username: string;
   displayName: string;
   avatarUrl: string | null;
+  coverUrl: string | null;
   googleId: string | null;
+  isVerified: boolean;
+  pinnedPostId: string | null;
 }
 
 export const google = new Google(

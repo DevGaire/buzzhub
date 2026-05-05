@@ -6,24 +6,27 @@ import { NextRequest } from "next/server";
 export async function GET(req: NextRequest) {
   try {
     const cursor = req.nextUrl.searchParams.get("cursor") || undefined;
-
     const pageSize = 10;
 
     const { user } = await validateRequest();
+    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-    if (!user) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const [blockedByUsers, blockedUsers] = await Promise.all([
+      prisma.block.findMany({ where: { blockedId: user.id }, select: { blockerId: true } }),
+      prisma.block.findMany({ where: { blockerId: user.id }, select: { blockedId: true } }),
+    ]);
+    const hiddenIds = [
+      ...blockedByUsers.map((b) => b.blockerId),
+      ...blockedUsers.map((b) => b.blockedId),
+    ];
 
     const posts = await prisma.post.findMany({
       where: {
         user: {
-          followers: {
-            some: {
-              followerId: user.id,
-            },
-          },
+          followers: { some: { followerId: user.id } },
         },
+        userId: { notIn: hiddenIds },
+        archived: false,
       },
       orderBy: { createdAt: "desc" },
       take: pageSize + 1,
@@ -32,12 +35,7 @@ export async function GET(req: NextRequest) {
     });
 
     const nextCursor = posts.length > pageSize ? posts[pageSize].id : null;
-
-    const data: PostsPage = {
-      posts: posts.slice(0, pageSize),
-      nextCursor,
-    };
-
+    const data: PostsPage = { posts: posts.slice(0, pageSize), nextCursor };
     return Response.json(data);
   } catch (error) {
     console.error(error);

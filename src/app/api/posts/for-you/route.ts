@@ -6,29 +6,100 @@ import { NextRequest } from "next/server";
 export async function GET(req: NextRequest) {
   try {
     const cursor = req.nextUrl.searchParams.get("cursor") || undefined;
-
     const pageSize = 10;
 
     const { user } = await validateRequest();
+    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-    if (!user) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    // Get users the current user follows for engagement boost
+    const following = await prisma.follow.findMany({
+      where: { followerId: user.id },
+      select: { followingId: true },
+    });
+    const followingIds = following.map((f) => f.followingId);
+
+    // Get IDs of users who have blocked the logged-in user
+    const blockedByUsers = await prisma.block.findMany({
+      where: { blockedId: user.id },
+      select: { blockerId: true },
+    });
+    const blockedByIds = blockedByUsers.map((b) => b.blockerId);
+
+    // Get IDs of users the logged-in user has blocked
+    const blockedUsers = await prisma.block.findMany({
+      where: { blockerId: user.id },
+      select: { blockedId: true },
+    });
+    const blockedIds = blockedUsers.map((b) => b.blockedId);
+
+    const hiddenIds = [...new Set([...blockedByIds, ...blockedIds])];
+
+    if (cursor) {
+      // Cursor-based page: simple recent order
+      const posts = await prisma.post.findMany({
+        where: {
+          archived: false,
+          visibility: "PUBLIC",
+          userId: { notIn: hiddenIds },
+        },
+        include: getPostDataInclude(user.id),
+        orderBy: { createdAt: "desc" },
+        take: pageSize + 1,
+        cursor: { id: cursor },
+      });
+
+      const nextCursor = posts.length > pageSize ? posts[pageSize].id : null;
+      const data: PostsPage = { posts: posts.slice(0, pageSize), nextCursor };
+      return Response.json(data);
     }
 
-    const posts = await prisma.post.findMany({
+    // First page: engagement-scored ranking
+    // Fetch a larger pool and sort by score
+    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+    const pool = await prisma.post.findMany({
+      where: {
+        archived: false,
+        visibility: "PUBLIC",
+        userId: { notIn: hiddenIds },
+        createdAt: { gte: threeDaysAgo },
+      },
       include: getPostDataInclude(user.id),
       orderBy: { createdAt: "desc" },
-      take: pageSize + 1,
-      cursor: cursor ? { id: cursor } : undefined,
+      take: 60,
     });
 
-    const nextCursor = posts.length > pageSize ? posts[pageSize].id : null;
+    // Score: likes×3 + comments×2 + following boost×10 + recency decay
+    const now = Date.now();
+    const scored = pool.map((post) => {
+      const ageHours = (now - new Date(post.createdAt).getTime()) / 3_600_000;
+      const recency = Math.max(0, 1 - ageHours / 72); // decay over 72h
+      const followBoost = followingIds.includes(post.userId) ? 10 : 0;
+      const score =
+        post._count.likes * 3 +
+        post._count.comments * 2 +
+        followBoost +
+        recency * 15;
+      return { post, score };
+    });
 
-    const data: PostsPage = {
-      posts: posts.slice(0, pageSize),
-      nextCursor,
-    };
+    scored.sort((a, b) => b.score - a.score);
+    const topPosts = scored.slice(0, pageSize).map((s) => s.post);
 
+    // If pool is small, fetch older posts for next cursor pagination
+    const oldPosts = await prisma.post.findMany({
+      where: {
+        archived: false,
+        visibility: "PUBLIC",
+        userId: { notIn: hiddenIds },
+        createdAt: { lt: threeDaysAgo },
+      },
+      include: getPostDataInclude(user.id),
+      orderBy: { createdAt: "desc" },
+      take: 1,
+    });
+
+    const nextCursor = oldPosts.length > 0 ? oldPosts[0].id : null;
+    const data: PostsPage = { posts: topPosts, nextCursor };
     return Response.json(data);
   } catch (error) {
     console.error(error);

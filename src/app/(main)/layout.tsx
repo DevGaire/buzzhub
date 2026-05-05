@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import MenuBar from "./MenuBar";
 import Navbar from "./Navbar";
 import SessionProvider from "./SessionProvider";
+import TrendsSidebar from "@/components/TrendsSidebar";
 
 export default async function Layout({
   children,
@@ -15,13 +16,26 @@ export default async function Layout({
 
   return (
     <SessionProvider value={session}>
-      <div className="flex min-h-screen flex-col">
+      <div className="min-h-screen bg-background">
         <Navbar />
-        <div className="mx-auto flex w-full max-w-7xl grow gap-5 p-5">
-          <MenuBar className="sticky top-[5.25rem] hidden h-fit flex-none space-y-3 rounded-2xl bg-card px-3 py-5 shadow-sm sm:block lg:px-5 xl:w-80" />
-          {children}
+
+        <div className="mx-auto flex max-w-[1440px] items-start gap-5 px-4 py-5 sm:px-6">
+          {/* Left sidebar */}
+          <aside className="hidden lg:block w-[260px] flex-none">
+            <MenuBar className="sticky top-20" />
+          </aside>
+
+          {/* Center content */}
+          <main className="flex-1 min-w-0">
+            {children}
+          </main>
+
+          {/* Right panel */}
+          <TrendsSidebar />
         </div>
-        <MenuBar className="sticky bottom-0 flex w-full justify-center gap-5 border-t bg-card p-3 sm:hidden" />
+
+        {/* Mobile bottom nav */}
+        <MenuBar className="sticky bottom-0 z-40 flex w-full justify-around border-t bg-card/95 backdrop-blur-md p-3 lg:hidden" />
       </div>
     </SessionProvider>
   );

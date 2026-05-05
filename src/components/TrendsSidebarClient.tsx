@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import FollowButton from "./FollowButton";
 import UserTooltip from "./UserTooltip";
 import PostUserAvatar from "./PostUserAvatar";
 import { UserData } from "@/lib/types";
+import Link from "next/link";
 
 interface WhoToFollowItemProps {
   user: UserData;
@@ -13,23 +13,20 @@ interface WhoToFollowItemProps {
 
 export function WhoToFollowItem({ user, currentUserId }: WhoToFollowItemProps) {
   return (
-    <div className="flex items-center justify-between gap-3">
+    <div className="flex items-center justify-between gap-2">
       <UserTooltip user={user}>
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-2.5">
           <PostUserAvatar
             userId={user.id}
             username={user.username}
             avatarUrl={user.avatarUrl}
-            className="flex-none"
+            className="flex-shrink-0"
           />
-          <Link
-            href={`/users/${user.username}`}
-            className="min-w-0"
-          >
-            <p className="line-clamp-1 break-all font-semibold hover:underline">
+          <Link href={`/users/${user.username}`} className="min-w-0">
+            <p className="truncate text-sm font-semibold leading-tight hover:underline">
               {user.displayName}
             </p>
-            <p className="line-clamp-1 break-all text-muted-foreground">
+            <p className="truncate text-xs text-muted-foreground">
               @{user.username}
             </p>
           </Link>

@@ -13,40 +13,38 @@ import { updateUserProfile } from "./actions";
 
 export function useUpdateProfileMutation() {
   const { toast } = useToast();
-
   const router = useRouter();
-
   const queryClient = useQueryClient();
-
   const { startUpload: startAvatarUpload } = useUploadThing("avatar");
+  const { startUpload: startCoverUpload } = useUploadThing("cover");
 
   const mutation = useMutation({
     mutationFn: async ({
       values,
       avatar,
+      cover,
     }: {
       values: UpdateUserProfileValues;
       avatar?: File;
+      cover?: File;
     }) => {
       return Promise.all([
         updateUserProfile(values),
-        avatar && startAvatarUpload([avatar]),
+        avatar ? startAvatarUpload([avatar]) : undefined,
+        cover ? startCoverUpload([cover]) : undefined,
       ]);
     },
-    onSuccess: async ([updatedUser, uploadResult]) => {
-      const newAvatarUrl = uploadResult?.[0].serverData.avatarUrl;
+    onSuccess: async ([updatedUser, avatarResult, coverResult]) => {
+      const newAvatarUrl = avatarResult?.[0]?.serverData?.avatarUrl;
+      const newCoverUrl = coverResult?.[0]?.serverData?.coverUrl;
 
-      const queryFilter: QueryFilters = {
-        queryKey: ["post-feed"],
-      };
-
+      const queryFilter: QueryFilters = { queryKey: ["post-feed"] };
       await queryClient.cancelQueries(queryFilter);
 
       queryClient.setQueriesData<InfiniteData<PostsPage, string | null>>(
         queryFilter,
         (oldData) => {
           if (!oldData) return;
-
           return {
             pageParams: oldData.pageParams,
             pages: oldData.pages.map((page) => ({
@@ -58,6 +56,7 @@ export function useUpdateProfileMutation() {
                     user: {
                       ...updatedUser,
                       avatarUrl: newAvatarUrl || updatedUser.avatarUrl,
+                      coverUrl: newCoverUrl || updatedUser.coverUrl,
                     },
                   };
                 }
@@ -69,17 +68,11 @@ export function useUpdateProfileMutation() {
       );
 
       router.refresh();
-
-      toast({
-        description: "Profile updated",
-      });
+      toast({ description: "Profile updated" });
     },
     onError(error) {
       console.error(error);
-      toast({
-        variant: "destructive",
-        description: "Failed to update profile. Please try again.",
-      });
+      toast({ variant: "destructive", description: "Failed to update profile. Please try again." });
     },
   });
 

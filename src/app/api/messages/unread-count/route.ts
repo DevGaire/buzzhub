@@ -10,9 +10,9 @@ export async function GET() {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { total_unread_count } = await streamServerClient.getUnreadCount(
-      user.id,
-    );
+    const { total_unread_count } = await streamServerClient
+      .getUnreadCount(user.id)
+      .catch(() => ({ total_unread_count: 0 }));
 
     const data: MessageCountInfo = {
       unreadCount: total_unread_count,

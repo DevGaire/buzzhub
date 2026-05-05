@@ -12,7 +12,9 @@ export async function requestPasswordReset(
     const { email } = forgotPasswordSchema.parse(credentials);
     console.log("🔍 Forgot Password: Looking for user with email:", email);
 
-    const user = await prisma.user.findFirst({ where: { email } });
+    const user = await prisma.user.findFirst({
+      where: { email: { equals: email, mode: "insensitive" } },
+    });
     if (!user) {
       console.log("❌ Forgot Password: No user found with email:", email);
       // Do not reveal whether email exists

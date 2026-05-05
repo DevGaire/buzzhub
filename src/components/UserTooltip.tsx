@@ -14,6 +14,7 @@ import {
     TooltipTrigger,
 } from "./ui/tooltip";
 import UserAvatar from "./UserAvatar";
+import VerifiedBadge from "./VerifiedBadge";
 
 interface UserTooltipProps extends PropsWithChildren {
     user: UserData;
@@ -45,8 +46,9 @@ export default function UserTooltip({ children, user }: UserTooltipProps) {
                         </div>
                         <div>
                             <Link href={`/users/${user.username}`}>
-                                <div className="text-lg font-semibold hover:underline">
+                                <div className="flex items-center gap-1 text-lg font-semibold hover:underline">
                                     {user.displayName}
+                                    {user.isVerified && <VerifiedBadge />}
                                 </div>
                                 <div className="text-muted-foreground">@{user.username}</div>
                             </Link>

@@ -6,7 +6,10 @@ export function getUserDataSelect(loggedInUserId: string) {
     username: true,
     displayName: true,
     avatarUrl: true,
+    coverUrl: true,
     bio: true,
+    isVerified: true,
+    pinnedPostId: true,
     createdAt: true,
     followers: {
       where: {
@@ -15,6 +18,10 @@ export function getUserDataSelect(loggedInUserId: string) {
       select: {
         followerId: true,
       },
+    },
+    blockedUsers: {
+      where: { blockedId: loggedInUserId },
+      select: { blockedId: true },
     },
     _count: {
       select: {
@@ -36,25 +43,39 @@ export function getPostDataInclude(loggedInUserId: string) {
     },
     attachments: true,
     likes: {
-      where: {
-        userId: loggedInUserId,
-      },
-      select: {
-        userId: true,
-      },
+      where: { userId: loggedInUserId },
+      select: { userId: true },
     },
     bookmarks: {
-      where: {
-        userId: loggedInUserId,
-      },
-      select: {
-        userId: true,
-      },
+      where: { userId: loggedInUserId },
+      select: { userId: true },
     },
     comments: {
       include: getCommentDataInclude(loggedInUserId),
       orderBy: { createdAt: "desc" } as const,
       take: 1,
+    },
+    poll: {
+      include: {
+        options: {
+          include: {
+            _count: { select: { votes: true } },
+          },
+          orderBy: { order: "asc" as const },
+        },
+        votes: {
+          where: { userId: loggedInUserId },
+          select: { optionId: true },
+        },
+        _count: { select: { votes: true } },
+      },
+    },
+    quotedPost: {
+      include: {
+        user: { select: getUserDataSelect(loggedInUserId) },
+        attachments: true,
+        _count: { select: { likes: true, comments: true } },
+      },
     },
     _count: {
       select: {
@@ -144,6 +165,10 @@ export interface NotificationCountInfo {
 
 export interface MessageCountInfo {
   unreadCount: number;
+}
+
+export interface BlockInfo {
+  isBlockedByUser: boolean;
 }
 
 // Story-related types

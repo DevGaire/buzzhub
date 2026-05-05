@@ -1,0 +1,68 @@
+/* ─── Stream Video SDK dark-theme overrides ─────────────────────────────────
+   Imported after @stream-io/video-react-sdk/dist/css/styles.css so these
+   rules win. Scoped to .str-video to avoid touching chat components.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Force our black background everywhere */
+.str-video,
+.str-video__call,
+.str-video__call-stats,
+.str-video__speaker-layout,
+.str-video__paginated-grid-layout,
+.str-video__spotlight-layout {
+  background: #000 !important;
+  color: #fff !important;
+}
+
+/* Participant tiles */
+.str-video__participant-view {
+  background: #111 !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+
+/* Participant name label */
+.str-video__participant-details,
+.str-video__participant-details * {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+/* Local participant picture-in-picture */
+.str-video__participant-view--local {
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Built-in call controls bar (we use custom ones but hide the built-in as fallback) */
+.str-video__call-controls {
+  background: rgba(0, 0, 0, 0.8) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Stream Video icons */
+.str-video__icon {
+  color: #fff !important;
+}
+
+/* Mic/cam muted indicators */
+.str-video__participant-view__muted-indicator {
+  background: rgba(0, 0, 0, 0.6) !important;
+  color: #fff !important;
+}
+
+/* Screen share */
+.str-video__screen-share-overlay {
+  background: rgba(0, 0, 0, 0.7) !important;
+  color: #fff !important;
+}
+
+/* Scrollbars inside video panel */
+.str-video ::-webkit-scrollbar {
+  width: 4px;
+}
+.str-video ::-webkit-scrollbar-track {
+  background: transparent;
+}
+.str-video ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+}
