@@ -102,9 +102,10 @@ export default function ChatSidebar({ open, onClose }: ChatSidebarProps) {
         return (
             <button
                 className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2.5 mb-1 rounded-2xl transition-all duration-150",
-                    "hover:bg-white/[0.05]",
-                    isActive && "bg-gradient-to-r from-purple-600/30 to-purple-500/10 ring-1 ring-purple-500/30"
+                    "w-full flex items-center gap-2.5 px-2 py-1.5 mb-0.5 rounded transition-colors duration-100 text-left",
+                    isActive
+                        ? "bg-black/[0.08] dark:bg-white/[0.10] text-zinc-900 dark:text-white"
+                        : "text-zinc-700 dark:text-[#b5bac1] hover:bg-black/[0.04] dark:hover:bg-white/[0.06] hover:text-zinc-900 dark:hover:text-white"
                 )}
                 onClick={() => {
                     props.setActiveChannel?.(props.channel, props.watchers);
@@ -113,46 +114,46 @@ export default function ChatSidebar({ open, onClose }: ChatSidebarProps) {
             >
                 {/* Avatar */}
                 <div className="relative flex-shrink-0">
-                    <Avatar className="h-12 w-12">
+                    <Avatar className="h-8 w-8">
                         <AvatarImage src={channelImage} className="object-cover" />
-                        <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white text-base font-semibold">
+                        <AvatarFallback className="bg-[#5865f2] text-white text-xs font-semibold">
                             {channelName?.[0]?.toUpperCase() || '?'}
                         </AvatarFallback>
                     </Avatar>
                     {isOnline && (
-                        <span className="absolute bottom-0.5 right-0.5 w-3 h-3 bg-green-500 border-[2.5px] border-[#1A1B27] rounded-full" />
+                        <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-[#23a55a] border-2 border-[#f2f3f5] dark:border-[#2b2d31] rounded-full" />
                     )}
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 min-w-0 text-left">
+                <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                         <span className={cn(
-                            "text-[14px] truncate",
-                            unreadCount > 0 ? "font-semibold text-white" : "font-medium text-white"
+                            "text-[14px] truncate leading-tight",
+                            unreadCount > 0 ? "font-semibold" : "font-medium"
                         )}>
                             {channelName}
                         </span>
-                        <span className="text-[11px] text-white/40 flex-shrink-0">
-                            {formatTime(lastMessage?.created_at)}
-                        </span>
-                    </div>
-                    <div className="flex items-center justify-between gap-2 mt-0.5">
-                        <p className={cn(
-                            "text-[12.5px] truncate",
-                            unreadCount > 0 ? "text-white/75" : "text-white/45"
-                        )}>
-                            {hasDraft ? (
-                                <span className="text-blue-400">Draft: </span>
-                            ) : null}
-                            {lastMessageText || 'No messages yet'}
-                        </p>
                         {unreadCount > 0 && (
-                            <span className="flex-shrink-0 inline-flex min-w-[20px] h-[20px] px-1.5 items-center justify-center rounded-full bg-pink-500 text-[10px] font-bold text-white">
+                            <span className="flex-shrink-0 inline-flex min-w-[16px] h-[16px] px-1 items-center justify-center rounded-full bg-[#f23f43] text-[10px] font-bold text-white">
                                 {unreadCount > 9 ? "9+" : unreadCount}
                             </span>
                         )}
                     </div>
+                    {(hasDraft || lastMessageText) && (
+                        <p className={cn(
+                            "text-[12px] truncate leading-tight mt-0.5",
+                            unreadCount > 0
+                                ? "text-zinc-700 dark:text-zinc-300"
+                                : "text-zinc-500 dark:text-zinc-400"
+                        )}>
+                            {hasDraft && <span className="text-[#5865f2]">Draft: </span>}
+                            {lastMessageText || 'No messages yet'}
+                            {lastMessage?.created_at && (
+                                <span className="ml-1 opacity-60">· {formatTime(lastMessage.created_at)}</span>
+                            )}
+                        </p>
+                    )}
                 </div>
             </button>
         );
@@ -175,29 +176,31 @@ export default function ChatSidebar({ open, onClose }: ChatSidebarProps) {
     return (
         <div
             className={cn(
-                "h-full flex-col rounded-2xl bg-[#1A1B27] border border-white/[0.04] md:flex overflow-hidden",
-                "w-full md:w-[300px] lg:w-[320px] flex-shrink-0",
+                "h-full flex-col md:flex overflow-hidden",
+                "bg-[#f2f3f5] dark:bg-[#2b2d31]",
+                "border-r border-black/[0.06] dark:border-black/40",
+                "w-full md:w-[260px] lg:w-[280px] flex-shrink-0",
                 open ? "flex absolute md:relative inset-0 z-50 md:z-auto" : "hidden",
             )}
         >
             <MenuHeader onClose={onClose} />
 
             {/* Search */}
-            <div className="px-3 pb-2">
+            <div className="px-2 pb-2">
                 <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-white/40" />
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-zinc-500 dark:text-zinc-400" />
                     <input
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Search"
-                        className="w-full h-10 pl-9 pr-9 rounded-xl bg-[#0E0F18] border border-white/[0.04] text-sm text-white placeholder:text-white/40 outline-none focus:border-purple-500/40 transition-colors"
+                        placeholder="Find a conversation"
+                        className="w-full h-7 pl-8 pr-7 rounded bg-[#e3e5e8] dark:bg-[#1e1f22] text-[13px] text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:ring-1 focus:ring-[#5865f2] transition-shadow"
                     />
                     {search && (
                         <button
                             onClick={() => setSearch("")}
-                            className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-white/10"
+                            className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10"
                         >
-                            <X className="size-3.5 text-white/50" />
+                            <X className="size-3 text-zinc-500 dark:text-zinc-400" />
                         </button>
                     )}
                 </div>
@@ -205,13 +208,13 @@ export default function ChatSidebar({ open, onClose }: ChatSidebarProps) {
 
             <NotesBar />
 
-            <div className="px-3 pt-1 pb-1.5">
-                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-white/40">
-                    Chats
+            <div className="px-3 pt-2 pb-1 flex items-center justify-between">
+                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                    Direct Messages
                 </h3>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+            <div className="flex-1 overflow-y-auto px-1.5 scrollbar-thin scrollbar-thumb-black/10 dark:scrollbar-thumb-white/10 scrollbar-track-transparent">
                 <ChannelList
                     key={search ? `search-${search}` : "all"}
                     filters={channelFilter as any}
@@ -234,17 +237,17 @@ function MenuHeader({ onClose }: MenuHeaderProps) {
 
     return (
         <>
-            <div className="flex items-center justify-between px-4 pt-4 pb-3">
-                <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center justify-between h-12 px-3 border-b border-black/[0.06] dark:border-black/40 shadow-sm flex-shrink-0">
+                <div className="flex items-center gap-1 min-w-0">
                     <Button
                         size="icon"
                         variant="ghost"
                         onClick={onClose}
-                        className="md:hidden h-8 w-8 text-white/70 hover:text-white hover:bg-white/10 rounded-full"
+                        className="md:hidden h-7 w-7 text-zinc-700 dark:text-[#b5bac1] hover:text-zinc-900 dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] rounded"
                     >
-                        <X className="size-5" />
+                        <X className="size-4" />
                     </Button>
-                    <h1 className="text-base font-semibold text-white tracking-tight truncate">
+                    <h1 className="text-[15px] font-semibold text-zinc-900 dark:text-white tracking-tight truncate">
                         {user.displayName || user.username}
                     </h1>
                 </div>
@@ -253,9 +256,9 @@ function MenuHeader({ onClose }: MenuHeaderProps) {
                     variant="ghost"
                     title="New message"
                     onClick={() => setShowNewChatDialog(true)}
-                    className="h-9 w-9 text-white hover:bg-white/10 rounded-full"
+                    className="h-7 w-7 text-zinc-700 dark:text-[#b5bac1] hover:text-zinc-900 dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] rounded"
                 >
-                    <MailPlus className="size-5" />
+                    <MailPlus className="size-4" />
                 </Button>
             </div>
             {showNewChatDialog && (

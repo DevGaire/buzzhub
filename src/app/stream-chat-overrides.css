@@ -1,8 +1,7 @@
 /* ================================================
-   INSTAGRAM-STYLE CHAT UI
+   DISCORD-STYLE CHAT OVERRIDES (theme-aware via .dark)
    ================================================ */
 
-/* Base Reset */
 .str-chat * {
   margin: 0;
   padding: 0;
@@ -10,309 +9,231 @@
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-/* Main Container */
+/* Containers — let parents handle background so themes work */
 .str-chat,
 .str-chat__container,
-.str-chat__theme-dark,
-.str-chat__theme-light {
-  background: #000000 !important;
-  color: #ffffff;
+.str-chat__main-panel,
+.str-chat__channel,
+.str-chat__window {
+  background: transparent !important;
   height: 100%;
 }
 
-/* Channel List Sidebar */
-.str-chat__channel-list {
-  background: #000000;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+/* Hide bits we replace with our own components */
+.str-chat__channel-search,
+.str-chat__input-flat,
+.str-chat__message-input {
+  display: none !important;
 }
 
-/* Hide default stream-chat search - we use custom */
-.str-chat__channel-search {
-  display: none;
-}
-
-/* Main Chat Area */
-.str-chat__main-panel,
-.str-chat__channel {
-  background: #000000;
-}
-
-/* Message List */
-.str-chat__list,
-.str-chat__message-list,
-.str-chat__virtual-list {
-  background: #000000 !important;
-  padding: 16px 20px;
-}
-
-/* Messages Container */
-.str-chat__message-list-scroll {
-  background: #000000;
-}
-
-/* Messages */
-.str-chat__message,
-.str-chat__message-simple {
-  margin-bottom: 2px;
-  display: flex;
-  align-items: flex-end;
-  padding: 0;
-}
-
-/* Group consecutive messages */
-.str-chat__li {
-  margin-bottom: 2px;
-}
-
-.str-chat__li--top,
-.str-chat__li--single {
-  margin-top: 8px;
-}
-
-/* Message Bubbles - Base */
-.str-chat__message-text-inner,
-.str-chat__message-simple-text-inner {
-  padding: 10px 14px;
-  border-radius: 18px;
-  max-width: min(75%, 400px);
-  font-size: 15px;
-  line-height: 1.4;
-  word-wrap: break-word;
-  word-break: normal;
-}
-
-/* Fix paragraph tags inside messages */
-.str-chat__message-text-inner p,
-.str-chat__message-simple-text-inner p {
-  display: inline;
-  margin: 0;
-  padding: 0;
-}
-
-/* Sent Messages (Me) - Instagram blue */
-.str-chat__message--me,
-.str-chat__message-simple--me {
-  justify-content: flex-end;
-}
-
-.str-chat__message--me .str-chat__message-text-inner,
-.str-chat__message--me .str-chat__message-simple-text-inner,
-.str-chat__message-simple--me .str-chat__message-text-inner,
-.str-chat__message-simple--me .str-chat__message-simple-text-inner {
-  background: linear-gradient(135deg, #0095F6, #0077E6, #0066CC) !important;
-  color: #ffffff !important;
-  border-radius: 18px 18px 4px 18px;
-  margin-left: auto;
-  padding: 10px 14px;
-}
-
-/* Received Messages (Other) - Dark gray like Instagram */
-.str-chat__message--other,
-.str-chat__message-simple--other {
-  justify-content: flex-start;
-}
-
-.str-chat__message--other .str-chat__message-text-inner,
-.str-chat__message--other .str-chat__message-simple-text-inner,
-.str-chat__message-simple--other .str-chat__message-text-inner,
-.str-chat__message-simple--other .str-chat__message-simple-text-inner {
-  background: #262626 !important;
-  color: #f5f5f5 !important;
-  border-radius: 18px 18px 18px 4px;
-  padding: 10px 14px;
-}
-
-/* Hide avatars in chat like Instagram */
 .str-chat__avatar,
 .str-chat__message-sender-avatar {
   display: none !important;
 }
 
-/* Message metadata */
-.str-chat__message-data,
-.str-chat__message-simple-data {
+/* Message list — let CustomMessage do all the chrome */
+.str-chat__list,
+.str-chat__message-list,
+.str-chat__virtual-list,
+.str-chat__message-list-scroll {
+  background: transparent !important;
+  padding: 12px 0 16px 0;
+}
+
+/* Strip Stream's default bubble styling — CustomMessage owns the look */
+.str-chat__message-text-inner,
+.str-chat__message-simple-text-inner {
+  background: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  max-width: 100% !important;
+  color: inherit !important;
+}
+
+.str-chat__message,
+.str-chat__message-simple {
+  margin: 0;
+  padding: 0;
+  display: block;
+}
+
+/* Date separator — Discord style: faint line + label */
+.str-chat__date-separator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 16px 4px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgb(78 80 88);
+}
+.dark .str-chat__date-separator {
+  color: rgb(148 155 164);
+}
+.str-chat__date-separator::before,
+.str-chat__date-separator::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(0, 0, 0, 0.08);
+}
+.dark .str-chat__date-separator::before,
+.dark .str-chat__date-separator::after {
+  background: rgba(255, 255, 255, 0.08);
+}
+.str-chat__date-separator-date {
+  background: transparent;
+  padding: 0;
+}
+.str-chat__date-separator-line {
   display: none;
 }
 
-/* Timestamps - only show on hover */
-.str-chat__message-timestamp {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.4);
-  margin-top: 4px;
-  opacity: 0;
-  transition: opacity 0.2s;
+/* Stream's built-in actions popover (rare path) */
+.str-chat__message-actions-box {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+.dark .str-chat__message-actions-box {
+  background: #2b2d31;
+  border-color: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+.str-chat__message-actions-list button {
+  color: #060607;
+}
+.dark .str-chat__message-actions-list button {
+  color: #dbdee1;
+}
+.str-chat__message-actions-list button:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+.dark .str-chat__message-actions-list button:hover {
+  background: rgba(255, 255, 255, 0.06);
 }
 
-.str-chat__message:hover .str-chat__message-timestamp {
-  opacity: 1;
+/* Quoted message preview — Discord-ish left bar */
+.str-chat__quoted-message-preview {
+  background: rgba(0, 0, 0, 0.04);
+  border-left: 4px solid #5865f2;
+  padding: 6px 10px;
+  margin-bottom: 4px;
+  border-radius: 0 4px 4px 0;
+  color: #4e5058;
+}
+.dark .str-chat__quoted-message-preview {
+  background: rgba(255, 255, 255, 0.04);
+  color: #b5bac1;
 }
 
-/* Reactions */
-.str-chat__reaction-list {
-  display: flex;
-  gap: 4px;
-  margin-top: 4px;
+/* Attachment chrome */
+.str-chat__message-attachment {
+  border-radius: 8px;
+  overflow: hidden;
+  max-width: 400px;
+}
+.str-chat__message-attachment-card {
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+.dark .str-chat__message-attachment-card {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+.str-chat__message-attachment--image img {
+  border-radius: 8px;
 }
 
-.str-chat__reaction-list-item {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 4px 8px;
-  font-size: 13px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.str-chat__reaction-list-item:hover {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-/* Typing Indicator */
-.str-chat__typing-indicator {
-  padding: 8px 20px;
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.5);
-}
-
-/* Date Separator - Instagram style */
-.str-chat__date-separator {
-  text-align: center;
-  margin: 24px 0;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 12px;
-}
-
-.str-chat__date-separator-date {
-  background: transparent;
-  padding: 4px 12px;
-}
-
-/* Scrollbar - thin and minimal */
-.str-chat__message-list::-webkit-scrollbar,
-.str-chat__virtual-list::-webkit-scrollbar {
-  width: 4px;
-}
-
-.str-chat__message-list::-webkit-scrollbar-track,
-.str-chat__virtual-list::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.str-chat__message-list::-webkit-scrollbar-thumb,
-.str-chat__virtual-list::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 2px;
-}
-
-/* Empty State */
-.str-chat__empty-channel {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: rgba(255, 255, 255, 0.5);
-}
-
-/* Loading */
+/* Loading indicator */
 .str-chat__loading-indicator {
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
-  color: rgba(255, 255, 255, 0.5);
+  color: #4e5058;
+}
+.dark .str-chat__loading-indicator {
+  color: #949ba4;
 }
 
-/* Message Actions - minimal */
-.str-chat__message-actions-box {
-  background: #262626;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-}
-
-.str-chat__message-actions-list button {
-  color: #ffffff;
-}
-
-.str-chat__message-actions-list button:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-/* Input - Hide default, we use custom */
-.str-chat__input-flat,
-.str-chat__message-input {
-  display: none;
-}
-
-/* Window */
-.str-chat__window {
-  background: #000000;
-}
-
-/* Thread */
-.str-chat__thread {
-  background: #000000;
-  border-left: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-/* Attachments */
-.str-chat__message-attachment {
-  border-radius: 16px;
-  overflow: hidden;
-  max-width: 300px;
-}
-
-.str-chat__message-attachment-card {
-  background: #262626;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Image attachments */
-.str-chat__message-attachment--image img {
-  border-radius: 16px;
-}
-
-/* Quoted/Reply messages */
-.str-chat__quoted-message-preview {
-  background: rgba(255, 255, 255, 0.05);
-  border-left: 2px solid #3797f0;
-  padding: 8px 12px;
-  margin-bottom: 4px;
-  border-radius: 0 8px 8px 0;
-}
-
-/* Mobile Responsive */
-@media (max-width: 768px) {
-  .str-chat__message-text-inner,
-  .str-chat__message-simple-text-inner {
-    max-width: 85%;
-  }
-}
-
-/* Override any remaining blue/colored backgrounds */
-.str-chat__channel-preview-container--selected {
-  background: rgba(255, 255, 255, 0.08) !important;
-}
-
-/* Ensure message text is always readable */
-.str-chat__message-text,
-.str-chat__message-simple__text {
-  color: #ffffff;
-}
-
-/* System messages */
+/* System messages — faint center text */
 .str-chat__message--system {
   text-align: center;
-  color: rgba(255, 255, 255, 0.5);
+  color: #4e5058;
   font-size: 13px;
+  padding: 8px 16px;
+}
+.dark .str-chat__message--system {
+  color: #949ba4;
 }
 
-/* New messages separator */
+/* Unread separator — Discord red rule */
 .str-chat__unread-messages-separator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 16px;
+  color: #f23f43;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.str-chat__unread-messages-separator::before,
+.str-chat__unread-messages-separator::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #f23f43;
+  opacity: 0.6;
+}
+
+/* Empty state */
+.str-chat__empty-channel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #4e5058;
+}
+.dark .str-chat__empty-channel {
+  color: #949ba4;
+}
+
+/* Scrollbars — Discord thin */
+.str-chat__message-list::-webkit-scrollbar,
+.str-chat__virtual-list::-webkit-scrollbar {
+  width: 8px;
+}
+.str-chat__message-list::-webkit-scrollbar-track,
+.str-chat__virtual-list::-webkit-scrollbar-track {
   background: transparent;
-  color: #3797f0;
-  font-size: 12px;
-  padding: 8px;
-  text-align: center;
+}
+.str-chat__message-list::-webkit-scrollbar-thumb,
+.str-chat__virtual-list::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+}
+.dark .str-chat__message-list::-webkit-scrollbar-thumb,
+.dark .str-chat__virtual-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+.str-chat__message-list::-webkit-scrollbar-thumb:hover,
+.str-chat__virtual-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+.dark .str-chat__message-list::-webkit-scrollbar-thumb:hover,
+.dark .str-chat__virtual-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .str-chat__list,
+  .str-chat__message-list,
+  .str-chat__virtual-list {
+    padding: 8px 0 12px 0;
+  }
 }

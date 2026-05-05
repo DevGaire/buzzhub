@@ -7,6 +7,7 @@ import { RefreshCw, MessageSquare } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { Chat as StreamChat } from "stream-chat-react";
 import { StreamVideo } from "@stream-io/video-react-sdk";
+import { useTheme } from "next-themes";
 import dynamic from "next/dynamic";
 import ChatChannel from "./ChatChannel";
 import ChatSidebar from "./ChatSidebar";
@@ -52,6 +53,9 @@ export default function Chat() {
   const { user } = useSession();
   const { chatClient, isLoading, error, retry } = useInitializeChatClient();
   const videoClient = useInitializeVideoClient();
+  const { resolvedTheme } = useTheme();
+  const streamTheme =
+    resolvedTheme === "dark" ? "str-chat__theme-dark" : "str-chat__theme-light";
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [groupInfoOpen, setGroupInfoOpen] = useState(false);
@@ -67,7 +71,7 @@ export default function Chat() {
   if (isLoading) {
     return (
       <ComponentErrorBoundary componentName="Chat">
-        <div className="fixed inset-0 top-14 z-40 flex items-center justify-center bg-[#0E0F18]">
+        <div className="fixed inset-0 top-14 z-40 flex items-center justify-center bg-white dark:bg-[#313338]">
           <LoadingState message="Connecting to chat..." className="h-96" />
         </div>
       </ComponentErrorBoundary>
@@ -77,13 +81,13 @@ export default function Chat() {
   if (error) {
     return (
       <ComponentErrorBoundary componentName="Chat">
-        <div className="fixed inset-0 top-14 z-40 flex items-center justify-center bg-[#0E0F18]">
+        <div className="fixed inset-0 top-14 z-40 flex items-center justify-center bg-white dark:bg-[#313338]">
           <div className="text-center space-y-4">
             <div className="flex size-16 items-center justify-center rounded-full bg-destructive/10 mx-auto">
               <MessageSquare className="size-8 text-destructive" />
             </div>
             <div className="space-y-2">
-              <h3 className="text-lg font-semibold text-white">
+              <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">
                 Chat Connection Failed
               </h3>
               <p className="text-muted-foreground max-w-sm">
@@ -104,7 +108,7 @@ export default function Chat() {
   if (!chatClient) {
     return (
       <ComponentErrorBoundary componentName="Chat">
-        <div className="fixed inset-0 top-14 z-40 flex items-center justify-center bg-[#0E0F18]">
+        <div className="fixed inset-0 top-14 z-40 flex items-center justify-center bg-white dark:bg-[#313338]">
           <LoadingState message="Initializing chat..." className="h-96" />
         </div>
       </ComponentErrorBoundary>
@@ -113,8 +117,8 @@ export default function Chat() {
 
   // ── Inner content — always rendered once chatClient is ready ───────────────
   const chatContent = (
-    <StreamChat client={chatClient} theme="str-chat__theme-dark">
-      <div className="flex h-full w-full gap-3 p-3 bg-[#0E0F18]">
+    <StreamChat client={chatClient} theme={streamTheme}>
+      <div className="flex h-full w-full bg-white dark:bg-[#313338]">
         <ChatSidebar
           open={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
@@ -135,7 +139,7 @@ export default function Chat() {
 
   return (
     <ComponentErrorBoundary componentName="Chat">
-      <div className="fixed inset-0 top-14 z-40 bg-[#0E0F18]">
+      <div className="fixed inset-0 top-14 z-40 bg-white dark:bg-[#313338]">
         {videoClient ? (
           // Video client ready — wrap with StreamVideo + call providers
           <StreamVideo client={videoClient}>

@@ -6,7 +6,8 @@ import { useUploadThing } from "@/lib/uploadthing";
 import { toast } from "@/components/ui/use-toast";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Reply, Smile, Mic, Square } from "lucide-react";
+import { X, Reply, Smile, Mic, Square, Send } from "lucide-react";
+import { useTheme } from "next-themes";
 import { useSession } from "../SessionProvider";
 import { useReply } from "./CustomMessage";
 import { cn } from "@/lib/utils";
@@ -32,6 +33,7 @@ export default function CustomMessageInput() {
     const { channel } = useChannelStateContext();
     const { user } = useSession();
     const { replyingTo, setReplyingTo } = useReply();
+    const { resolvedTheme } = useTheme();
 
     const [text, setText] = useState("");
     const [isSending, setIsSending] = useState(false);
@@ -326,18 +328,20 @@ export default function CustomMessageInput() {
 
     const disabled = !channel?.id || isUploading || isSending;
 
+    const channelName = (channel?.data?.name as string | undefined) || "";
+
     return (
-        <div className="bg-[#1A1B27] px-3 py-3 relative border-t border-white/[0.04]">
+        <div className="bg-white dark:bg-[#313338] px-4 pb-4 pt-1 relative">
             {/* Emoji Picker */}
             {showEmojiPicker && (
                 <div
                     ref={emojiPickerRef}
-                    className="absolute bottom-full left-3 mb-2 z-50"
+                    className="absolute bottom-full left-4 mb-2 z-50"
                 >
                     <EmojiPicker
                         data={emojiData}
                         onEmojiSelect={handleEmojiSelect}
-                        theme="dark"
+                        theme={resolvedTheme === "dark" ? "dark" : "light"}
                         set="native"
                         previewPosition="none"
                         skinTonePosition="none"
@@ -345,113 +349,112 @@ export default function CustomMessageInput() {
                 </div>
             )}
 
-            {/* Reply Preview */}
+            {/* Reply Preview — Discord-style strip above input */}
             {replyingTo && (
-                <div className="flex items-center gap-3 mb-3 mx-1 px-4 py-2 bg-white/5 rounded-xl">
-                    <div className="flex items-center gap-2 text-blue-400">
-                        <Reply className="w-4 h-4" />
-                        <span className="text-xs font-medium">Replying to {replyingTo.user}</span>
-                    </div>
-                    <p className="flex-1 text-xs text-white/50 truncate">
-                        {replyingTo.text}
-                    </p>
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-[#ebedef] dark:bg-[#2b2d31] rounded-t-md text-[12px] -mb-1 relative z-10">
+                    <Reply className="w-3 h-3 text-[#5865f2] flex-shrink-0" />
+                    <span className="text-zinc-500 dark:text-zinc-400">Replying to</span>
+                    <span className="font-semibold text-zinc-900 dark:text-zinc-100 truncate">{replyingTo.user}</span>
                     <Button
                         size="icon"
                         variant="ghost"
                         onClick={() => setReplyingTo(null)}
-                        className="h-6 w-6 text-white/50 hover:text-white hover:bg-white/10 rounded-full"
+                        className="ml-auto h-5 w-5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] rounded"
                     >
-                        <X className="w-3.5 h-3.5" />
+                        <X className="w-3 h-3" />
                     </Button>
                 </div>
             )}
 
             {/* Voice recording banner */}
             {isRecording && (
-                <div className="flex items-center gap-3 mb-3 mx-1 px-4 py-2 bg-red-500/10 border border-red-500/30 rounded-xl">
+                <div className="flex items-center gap-3 mb-2 px-3 py-2 bg-red-500/10 border border-red-500/30 rounded-md">
                     <span className="size-2 rounded-full bg-red-500 animate-pulse" />
-                    <span className="text-red-400 text-sm font-medium flex-1">
+                    <span className="text-red-500 dark:text-red-400 text-sm font-medium flex-1">
                         Recording {formatRecDuration(recordingSeconds)}
                     </span>
                     <button
                         onClick={cancelRecording}
-                        className="text-white/50 hover:text-white text-xs"
+                        className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white text-xs font-medium"
                     >
                         Cancel
                     </button>
                 </div>
             )}
 
-            {/* Input Area */}
-            <div className="flex items-center gap-2">
-                {/* Text Input Container */}
-                <div className="flex-1 flex items-center bg-[#0E0F18] rounded-full px-3 min-h-[44px] border border-white/[0.06]">
-                    {/* Emoji Button */}
+            {/* Input Area — Discord flat rounded rectangle */}
+            <div className="flex items-end bg-[#ebedef] dark:bg-[#383a40] rounded-lg px-3 py-2 gap-2">
+                <div className="pt-1 flex-shrink-0">
+                    <RichMediaSharing
+                        onSendMedia={handleSendMedia}
+                        className="p-0 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+                    />
+                </div>
+
+                <textarea
+                    ref={textareaRef}
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    onKeyDown={onKeyDown}
+                    disabled={disabled || isRecording}
+                    placeholder={
+                        isRecording ? "Recording voice message…" :
+                        isUploading ? "Uploading..." :
+                        replyingTo ? `Reply to ${replyingTo.user}...` :
+                        channelName ? `Message ${channelName}` :
+                        "Message"
+                    }
+                    rows={1}
+                    className={cn(
+                        "flex-1 max-h-[160px] min-h-[22px] resize-none bg-transparent py-1",
+                        "text-zinc-900 dark:text-[#dbdee1] placeholder:text-zinc-500 dark:placeholder:text-zinc-500",
+                        "text-[15px] leading-snug",
+                        "focus:outline-none",
+                        "scrollbar-thin scrollbar-thumb-black/10 dark:scrollbar-thumb-white/10"
+                    )}
+                />
+
+                <div className="flex items-center gap-0.5 pt-0.5 flex-shrink-0">
                     <button
                         onClick={() => setShowEmojiPicker((v) => !v)}
                         className={cn(
-                            "p-1.5 transition-colors",
-                            showEmojiPicker ? "text-yellow-400" : "text-white/70 hover:text-white"
+                            "p-1 rounded transition-colors",
+                            showEmojiPicker
+                                ? "text-yellow-500"
+                                : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
                         )}
                         title="Emoji"
                     >
-                        <Smile className="w-6 h-6" />
+                        <Smile className="w-5 h-5" />
                     </button>
 
-                    <textarea
-                        ref={textareaRef}
-                        value={text}
-                        onChange={(e) => setText(e.target.value)}
-                        onKeyDown={onKeyDown}
-                        disabled={disabled || isRecording}
-                        placeholder={
-                            isRecording ? "Recording voice message…" :
-                            isUploading ? "Uploading..." :
-                            replyingTo ? `Reply to ${replyingTo.user}...` :
-                            "Message..."
-                        }
-                        rows={1}
-                        className={cn(
-                            "flex-1 max-h-[100px] min-h-[24px] resize-none bg-transparent py-2.5 px-2",
-                            "text-white placeholder:text-white/40 text-[15px] leading-normal",
-                            "focus:outline-none",
-                            "scrollbar-thin scrollbar-thumb-white/10"
-                        )}
-                    />
-
-                    {/* Right side icons */}
                     {text.trim() ? (
-                        <Button
+                        <button
                             type="button"
-                            variant="ghost"
                             onClick={handleSendText}
                             disabled={disabled}
-                            className="h-8 px-3 text-[#0095F6] hover:text-white hover:bg-transparent font-semibold text-sm"
+                            className="p-1 rounded text-[#5865f2] hover:text-[#4752c4] hover:bg-black/[0.04] dark:hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
+                            title="Send"
                         >
-                            Send
-                        </Button>
+                            <Send className="w-5 h-5" />
+                        </button>
                     ) : isRecording ? (
-                        /* Stop recording → send */
                         <button
                             onClick={stopRecording}
-                            className="p-1.5 text-red-400 hover:text-red-300 transition-colors"
+                            className="p-1 rounded text-red-500 hover:text-red-600 transition-colors"
                             title="Send voice message"
                         >
-                            <Square className="w-6 h-6 fill-current" />
+                            <Square className="w-5 h-5 fill-current" />
                         </button>
                     ) : (
-                        <div className="flex items-center gap-1">
-                            {/* Mic: start/stop recording */}
-                            <button
-                                onClick={startRecording}
-                                disabled={disabled}
-                                className="p-1.5 text-white/70 hover:text-white transition-colors disabled:opacity-40"
-                                title="Voice message"
-                            >
-                                <Mic className="w-6 h-6" />
-                            </button>
-                            <RichMediaSharing onSendMedia={handleSendMedia} className="p-1.5 text-white/70 hover:text-white" />
-                        </div>
+                        <button
+                            onClick={startRecording}
+                            disabled={disabled}
+                            className="p-1 rounded text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors disabled:opacity-40"
+                            title="Voice message"
+                        >
+                            <Mic className="w-5 h-5" />
+                        </button>
                     )}
                 </div>
             </div>

@@ -137,21 +137,42 @@ function MediaLightbox({ isOpen, onClose, media, initialIndex }: LightboxProps) 
     );
 }
 
-// Per-sender accent palette for received bubbles (group chat distinguishability)
-const SENDER_ACCENTS = [
-    { bg: "bg-[#252738]", border: "border-purple-400/15", name: "text-purple-300" },
-    { bg: "bg-[#252738]", border: "border-blue-400/15", name: "text-blue-300" },
-    { bg: "bg-[#252738]", border: "border-amber-400/15", name: "text-amber-300" },
-    { bg: "bg-[#252738]", border: "border-emerald-400/15", name: "text-emerald-300" },
-    { bg: "bg-[#252738]", border: "border-pink-400/15", name: "text-pink-300" },
-    { bg: "bg-[#252738]", border: "border-indigo-400/15", name: "text-indigo-300" },
+// Per-sender name color (Discord-style: only the name is colored, not the message)
+const SENDER_NAME_COLORS = [
+    "text-rose-500 dark:text-rose-400",
+    "text-amber-600 dark:text-amber-400",
+    "text-emerald-600 dark:text-emerald-400",
+    "text-sky-600 dark:text-sky-400",
+    "text-violet-600 dark:text-violet-400",
+    "text-fuchsia-600 dark:text-fuchsia-400",
+    "text-teal-600 dark:text-teal-400",
 ];
 
-function senderAccent(userId?: string) {
-    if (!userId) return SENDER_ACCENTS[0];
+function senderNameColor(userId?: string) {
+    if (!userId) return SENDER_NAME_COLORS[0];
     let hash = 0;
     for (let i = 0; i < userId.length; i++) hash = (hash * 31 + userId.charCodeAt(i)) | 0;
-    return SENDER_ACCENTS[Math.abs(hash) % SENDER_ACCENTS.length];
+    return SENDER_NAME_COLORS[Math.abs(hash) % SENDER_NAME_COLORS.length];
+}
+
+// Format a Discord-style cluster header timestamp: "Today at 12:34 PM"
+function formatClusterTime(date: string | Date) {
+    const d = new Date(date);
+    const now = new Date();
+    const isSameDay = d.toDateString() === now.toDateString();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isYesterday = d.toDateString() === yesterday.toDateString();
+
+    const time = new Intl.DateTimeFormat("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+    }).format(d);
+
+    if (isSameDay) return `Today at ${time}`;
+    if (isYesterday) return `Yesterday at ${time}`;
+    return `${d.toLocaleDateString("en-US", { month: "short", day: "numeric" })} at ${time}`;
 }
 
 // Message status indicator
@@ -160,15 +181,15 @@ type MessageStatus = "sending" | "sent" | "delivered" | "read" | "failed";
 function StatusIndicator({ status }: { status: MessageStatus }) {
     switch (status) {
         case "sending":
-            return <Clock className="w-3.5 h-3.5 text-blue-200 animate-pulse" />;
+            return <Clock className="w-3 h-3 text-zinc-400 dark:text-zinc-500 animate-pulse" />;
         case "sent":
-            return <Check className="w-3.5 h-3.5 text-blue-200" />;
+            return <Check className="w-3 h-3 text-zinc-400 dark:text-zinc-500" />;
         case "delivered":
-            return <CheckCheck className="w-3.5 h-3.5 text-blue-200" />;
+            return <CheckCheck className="w-3 h-3 text-zinc-400 dark:text-zinc-500" />;
         case "read":
-            return <CheckCheck className="w-3.5 h-3.5 text-green-400" />;
+            return <CheckCheck className="w-3 h-3 text-[#5865f2]" />;
         case "failed":
-            return <Clock className="w-3.5 h-3.5 text-red-400" />;
+            return <Clock className="w-3 h-3 text-red-500" />;
         default:
             return null;
     }
@@ -337,48 +358,51 @@ export default function CustomMessage(props: MessageUIComponentProps) {
     const avatarUrl = message.user?.image as string | undefined;
     const senderName = (message.user?.name as string | undefined) || message.user?.id || "Unknown";
     const avatarFallback = senderName[0]?.toUpperCase() ?? "?";
-    const accent = senderAccent(message.user?.id);
+    const nameColor = senderNameColor(message.user?.id);
 
     return (
         <>
             <div
                 className={cn(
-                    "group flex items-start gap-2 px-4",
-                    isLastInGroup ? "pb-1.5" : "pb-[2px]",
+                    "group relative flex items-start gap-3 px-4 hover:bg-black/[0.03] dark:hover:bg-white/[0.025]",
                     isFirstInGroup ? "pt-3" : "pt-0",
-                    isOwn ? "flex-row-reverse" : "flex-row"
+                    isLastInGroup ? "pb-1" : "pb-[2px]",
                 )}
                 onMouseEnter={() => setShowActions(true)}
                 onMouseLeave={() => setShowActions(false)}
             >
-                {/* Avatar — appears at the top of each received cluster */}
-                {!isOwn && (
-                    <div className="flex-shrink-0 w-8">
-                        {isFirstInGroup && (
-                            <Avatar className="h-8 w-8 mt-[18px]">
-                                <AvatarImage src={avatarUrl} className="object-cover" />
-                                <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white text-[11px] font-semibold">
-                                    {avatarFallback}
-                                </AvatarFallback>
-                            </Avatar>
-                        )}
-                    </div>
-                )}
+                {/* Avatar column — 40px wide, only shows avatar on first in cluster */}
+                <div className="flex-shrink-0 w-10">
+                    {isFirstInGroup ? (
+                        <Avatar className="h-10 w-10 mt-0.5">
+                            <AvatarImage src={avatarUrl} className="object-cover" />
+                            <AvatarFallback className="bg-[#5865f2] text-white text-sm font-semibold">
+                                {avatarFallback}
+                            </AvatarFallback>
+                        </Avatar>
+                    ) : (
+                        <span className="block w-10 text-[10px] text-zinc-500 dark:text-zinc-500 leading-[22px] tabular-nums opacity-0 group-hover:opacity-100 transition-opacity text-center select-none">
+                            {message.created_at && formatTime(message.created_at)}
+                        </span>
+                    )}
+                </div>
 
-                {/* Message bubble + meta */}
-                <div className={cn(
-                    "flex flex-col gap-1 max-w-[65%] min-w-0",
-                    isOwn ? "items-end" : "items-start"
-                )}>
-                    {/* Sender name + time — only at top of received cluster */}
-                    {!isOwn && isFirstInGroup && (
-                        <div className="flex items-baseline gap-2 px-1">
-                            <span className={cn("text-[12px] font-semibold", accent.name)}>
+                {/* Content column */}
+                <div className="flex-1 min-w-0">
+                    {/* Cluster header: sender name + timestamp */}
+                    {isFirstInGroup && (
+                        <div className="flex items-baseline gap-2 mb-0.5 flex-wrap">
+                            <span className={cn("text-[15px] font-semibold leading-tight", nameColor)}>
                                 {senderName}
                             </span>
+                            {isOwn && (
+                                <span className="px-1 py-px text-[10px] font-semibold bg-[#5865f2] text-white rounded leading-none align-middle">
+                                    YOU
+                                </span>
+                            )}
                             {message.created_at && (
-                                <span className="text-[11px] text-white/40">
-                                    {formatTime(message.created_at)}
+                                <span className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-tight">
+                                    {formatClusterTime(message.created_at)}
                                 </span>
                             )}
                         </div>
@@ -386,55 +410,39 @@ export default function CustomMessage(props: MessageUIComponentProps) {
 
                     {/* Quoted/Reply message */}
                     {quotedMessage && (
-                        <div className={cn(
-                            "flex items-start gap-2 px-3 py-2 rounded-2xl text-xs max-w-full",
-                            "border-l-[3px]",
-                            isOwn
-                                ? "border-blue-400/60 bg-blue-500/10 text-blue-200"
-                                : "border-purple-400/60 bg-white/5 text-white/60"
-                        )}>
-                            <Reply className="w-3 h-3 mt-0.5 flex-shrink-0 opacity-60" />
-                            <div className="min-w-0">
-                                <span className={cn("font-semibold", isOwn ? "text-blue-300" : "text-purple-300")}>
+                        <div className="flex items-start gap-2 mb-1 pl-2 border-l-2 border-zinc-300 dark:border-zinc-600 text-[13px] text-zinc-500 dark:text-zinc-400">
+                            <Reply className="w-3 h-3 mt-1 flex-shrink-0 opacity-60" />
+                            <div className="min-w-0 flex flex-wrap items-baseline gap-x-2">
+                                <span className="font-medium text-zinc-700 dark:text-zinc-300">
                                     {quotedMessage.user?.name || 'Unknown'}
                                 </span>
-                                <p className="truncate opacity-70 mt-0.5">
+                                <span className="truncate opacity-90">
                                     {quotedMessage.text || '[Media]'}
-                                </p>
+                                </span>
                             </div>
                         </div>
                     )}
 
-                    {/* Text bubble */}
+                    {/* Text — flat, no bubble */}
                     {!editing && message.text && (
-                        <div className={cn(
-                            "relative px-[14px] py-[9px] break-words shadow-sm",
-                            isOwn
-                                ? "bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] text-white rounded-[20px] rounded-br-[6px]"
-                                : cn(
-                                    accent.bg,
-                                    "border",
-                                    accent.border,
-                                    "text-white rounded-[20px] rounded-tl-[6px]"
-                                )
-                        )}>
-                            <p className="whitespace-pre-wrap text-[14.5px] leading-[1.4]">{message.text}</p>
-                        </div>
+                        <p className="whitespace-pre-wrap break-words text-[15px] leading-[1.5] text-zinc-900 dark:text-[#dbdee1]">
+                            {message.text}
+                        </p>
                     )}
 
                     {editing && (
-                        <div className="w-full max-w-sm">
+                        <div className="w-full max-w-xl mt-1">
                             <textarea
                                 value={editText}
                                 onChange={(e) => setEditText(e.target.value)}
                                 rows={3}
                                 autoFocus
-                                className="w-full rounded-xl border border-blue-500/30 bg-[#1a1a1b] px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
+                                className="w-full rounded-md border border-black/[0.08] dark:border-white/[0.08] bg-[#ebedef] dark:bg-[#383a40] px-3 py-2 text-[15px] text-zinc-900 dark:text-[#dbdee1] focus:outline-none focus:ring-1 focus:ring-[#5865f2] resize-none"
                             />
-                            <div className={cn("mt-2 flex gap-2", isOwn ? "justify-end" : "justify-start")}>
+                            <div className="mt-2 flex gap-2 justify-start">
                                 <Button
                                     size="sm"
-                                    className="bg-blue-500 hover:bg-blue-600 text-white"
+                                    className="bg-[#5865f2] hover:bg-[#4752c4] text-white h-7 px-3"
                                     onClick={async () => {
                                         try {
                                             if (!channel || !message?.id) return;
@@ -448,7 +456,7 @@ export default function CustomMessage(props: MessageUIComponentProps) {
                                 >
                                     Save
                                 </Button>
-                                <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+                                <Button size="sm" variant="ghost" onClick={() => setEditing(false)} className="h-7 px-3 text-zinc-700 dark:text-zinc-300">
                                     Cancel
                                 </Button>
                             </div>
@@ -458,9 +466,9 @@ export default function CustomMessage(props: MessageUIComponentProps) {
                     {/* Image attachments — grid layout */}
                     {imageAttachments.length > 0 && (
                         <div className={cn(
-                            "grid gap-1 rounded-2xl overflow-hidden",
+                            "grid gap-1 rounded-lg overflow-hidden mt-1",
                             getImageGridClass(imageAttachments.length),
-                            imageAttachments.length === 1 ? "max-w-[280px]" : "max-w-[320px]"
+                            "max-w-[400px]"
                         )}>
                             {imageAttachments.map((attachment, index) => {
                                 const attachmentId = `${message.id}-img-${index}`;
@@ -480,16 +488,16 @@ export default function CustomMessage(props: MessageUIComponentProps) {
                                                 <img
                                                     src={attachment.image_url}
                                                     alt={attachment.title || 'Image'}
-                                                    className="w-full h-full object-cover transition-transform duration-300 group-hover/img:scale-105"
+                                                    className="w-full h-full object-cover transition-transform duration-200 group-hover/img:scale-[1.02]"
                                                     onError={() => handleImageError(attachmentId)}
                                                 />
-                                                <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/20 transition-colors flex items-center justify-center">
-                                                    <Maximize2 className="w-6 h-6 text-white opacity-0 group-hover/img:opacity-100 transition-opacity" />
+                                                <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/15 transition-colors flex items-center justify-center">
+                                                    <Maximize2 className="w-5 h-5 text-white opacity-0 group-hover/img:opacity-100 transition-opacity" />
                                                 </div>
                                             </>
                                         ) : (
-                                            <div className="w-full h-32 bg-white/5 flex items-center justify-center">
-                                                <span className="text-sm text-white/40">Failed to load</span>
+                                            <div className="w-full h-32 bg-black/[0.04] dark:bg-white/[0.04] flex items-center justify-center">
+                                                <span className="text-sm text-zinc-500 dark:text-zinc-400">Failed to load</span>
                                             </div>
                                         )}
                                     </div>
@@ -500,7 +508,7 @@ export default function CustomMessage(props: MessageUIComponentProps) {
 
                     {/* Video attachments */}
                     {videoAttachments.map((attachment, index) => (
-                        <div key={`${message.id}-vid-${index}`} className="max-w-[280px] rounded-2xl overflow-hidden shadow-lg">
+                        <div key={`${message.id}-vid-${index}`} className="max-w-[400px] rounded-lg overflow-hidden mt-1">
                             <video className="w-full" controls preload="metadata">
                                 <source src={attachment.asset_url} type={attachment.mime_type} />
                             </video>
@@ -511,89 +519,69 @@ export default function CustomMessage(props: MessageUIComponentProps) {
                     {fileAttachments.map((attachment, index) => (
                         <div
                             key={`${message.id}-file-${index}`}
-                            className={cn(
-                                "flex items-center gap-3 px-4 py-3 rounded-2xl max-w-[280px] cursor-pointer",
-                                "transition-all duration-200",
-                                isOwn
-                                    ? "bg-blue-700/40 hover:bg-blue-700/60 border border-blue-400/20"
-                                    : "bg-white/5 hover:bg-white/10 border border-white/[0.06]"
-                            )}
+                            className="flex items-center gap-3 px-3 py-2 rounded-md max-w-[400px] cursor-pointer mt-1 bg-black/[0.04] dark:bg-white/[0.04] hover:bg-black/[0.06] dark:hover:bg-white/[0.06] border border-black/[0.06] dark:border-white/[0.06] transition-colors"
                             onClick={() => window.open(attachment.asset_url, '_blank')}
                         >
-                            <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                                <FileText className="w-5 h-5 text-blue-400" />
-                            </div>
+                            <FileText className="w-5 h-5 text-zinc-500 dark:text-zinc-400 flex-shrink-0" />
                             <div className="flex-1 min-w-0">
-                                <div className="text-sm font-medium truncate text-white">
+                                <div className="text-[14px] font-medium truncate text-zinc-900 dark:text-zinc-100">
                                     {attachment.title || 'File'}
                                 </div>
                                 {attachment.file_size && (
-                                    <div className="text-xs text-white/40">
+                                    <div className="text-[11px] text-zinc-500 dark:text-zinc-400">
                                         {formatFileSize(attachment.file_size)}
                                     </div>
                                 )}
                             </div>
-                            <Download className="w-4 h-4 text-white/40 flex-shrink-0" />
+                            <Download className="w-4 h-4 text-zinc-500 dark:text-zinc-400 flex-shrink-0" />
                         </div>
                     ))}
 
-                    {/* Timestamp + status — timestamp reveals on hover; status only on last own message */}
-                    {isLastInGroup ? (
-                        <div className={cn(
-                            "flex items-center gap-1.5 px-1",
-                            "text-[11px] text-white/40 select-none"
-                        )}>
-                            {message.created_at ? (
-                                <span className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                    {formatTime(message.created_at)}
-                                </span>
-                            ) : null}
-                            {isOwn ? <StatusIndicator status={getMessageStatus()} /> : null}
+                    {/* Status — only on last own message, inline */}
+                    {isOwn && isLastInGroup && (
+                        <div className="mt-0.5 flex items-center gap-1 text-[10px] text-zinc-500 dark:text-zinc-500 select-none">
+                            <StatusIndicator status={getMessageStatus()} />
                         </div>
-                    ) : null}
+                    )}
 
-                    {/* Reactions */}
+                    {/* Reactions — Discord pill style */}
                     {!editing && Object.values(reactionCounts).some(c => c > 0) && (
-                        <div className={cn(
-                            "flex items-center gap-1 -mt-0.5",
-                            isOwn ? "justify-end" : "justify-start"
-                        )}>
-                            <div className="inline-flex items-center bg-[#1e1e1e] border border-white/[0.08] rounded-full px-2.5 py-1 gap-1.5 shadow-lg">
-                                {reactions.map((r) => {
-                                    const count = reactionCounts[r.type] || 0;
-                                    if (count === 0) return null;
-                                    const mine = myReactions.has(r.type);
-                                    return (
-                                        <button
-                                            key={r.type}
-                                            className={cn(
-                                                "inline-flex items-center gap-0.5 hover:scale-110 transition-transform",
-                                                mine ? "opacity-100" : "opacity-70"
-                                            )}
-                                            onClick={() => toggleReaction(r.type)}
-                                        >
-                                            <span className="text-[13px]">{r.emoji}</span>
-                                            <span className={cn("text-[11px]", mine ? "text-blue-400" : "text-white/50")}>{count}</span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                            {reactions.map((r) => {
+                                const count = reactionCounts[r.type] || 0;
+                                if (count === 0) return null;
+                                const mine = myReactions.has(r.type);
+                                return (
+                                    <button
+                                        key={r.type}
+                                        onClick={() => toggleReaction(r.type)}
+                                        className={cn(
+                                            "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[12px] transition-colors",
+                                            mine
+                                                ? "bg-[#5865f2]/15 border-[#5865f2]/40 text-[#5865f2]"
+                                                : "bg-black/[0.04] dark:bg-white/[0.04] border-transparent text-zinc-600 dark:text-zinc-300 hover:bg-black/[0.06] dark:hover:bg-white/[0.06] hover:border-black/[0.1] dark:hover:border-white/[0.1]"
+                                        )}
+                                    >
+                                        <span className="text-[13px] leading-none">{r.emoji}</span>
+                                        <span className="font-medium tabular-nums leading-none">{count}</span>
+                                    </button>
+                                );
+                            })}
                         </div>
                     )}
                 </div>
 
-                {/* Hover actions */}
+                {/* Hover actions — Discord-style floating bar at top-right */}
                 <div className={cn(
-                    "flex items-center gap-0.5 self-center mb-5 transition-all duration-150",
-                    showActions ? "opacity-100 translate-x-0" : "opacity-0",
-                    isOwn ? "flex-row pr-1" : "flex-row-reverse pl-1"
+                    "absolute right-4 -top-3 flex items-center bg-white dark:bg-[#2b2d31] border border-black/[0.08] dark:border-black/40 rounded shadow-md transition-opacity duration-100 z-10",
+                    showActions ? "opacity-100" : "opacity-0 pointer-events-none"
                 )}>
                     <Button
                         size="icon"
                         variant="ghost"
                         onClick={handleReply}
                         title="Reply"
-                        className="h-7 w-7 text-white/40 hover:text-white hover:bg-white/10 rounded-full"
+                        className="h-7 w-7 text-zinc-600 dark:text-[#b5bac1] hover:text-zinc-900 dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] rounded-none"
                     >
                         <Reply className="h-3.5 w-3.5" />
                     </Button>
@@ -604,24 +592,24 @@ export default function CustomMessage(props: MessageUIComponentProps) {
                                 size="icon"
                                 variant="ghost"
                                 title="More"
-                                className="h-7 w-7 text-white/40 hover:text-white hover:bg-white/10 rounded-full"
+                                className="h-7 w-7 text-zinc-600 dark:text-[#b5bac1] hover:text-zinc-900 dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] rounded-none"
                             >
                                 <MoreHorizontal className="h-3.5 w-3.5" />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent
-                            align={isOwn ? "end" : "start"}
-                            className="bg-[#1e1e1e] border-white/10 p-1.5 shadow-2xl rounded-2xl"
+                            align="end"
+                            className="bg-white dark:bg-[#2b2d31] border-black/[0.08] dark:border-black/40 p-1 shadow-lg rounded-md min-w-[180px]"
                         >
                             {/* Quick reactions */}
-                            <div className="flex items-center gap-0.5 px-1.5 py-1 mb-1.5">
+                            <div className="flex items-center gap-0.5 px-1 py-1 mb-1 border-b border-black/[0.06] dark:border-white/[0.06]">
                                 {reactions.map((r) => (
                                     <button
                                         key={r.type}
                                         onClick={() => toggleReaction(r.type)}
                                         className={cn(
-                                            "p-1.5 rounded-full hover:bg-white/10 transition-all text-lg hover:scale-125",
-                                            myReactions.has(r.type) && "bg-blue-500/20 scale-110"
+                                            "p-1 rounded hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors text-base hover:scale-110",
+                                            myReactions.has(r.type) && "bg-[#5865f2]/15"
                                         )}
                                         title={r.label}
                                     >
@@ -629,30 +617,29 @@ export default function CustomMessage(props: MessageUIComponentProps) {
                                     </button>
                                 ))}
                             </div>
-                            <div className="h-px bg-white/[0.08] mx-1 mb-1" />
                             {isOwn && (
                                 <>
                                     <DropdownMenuItem
                                         onClick={() => { setEditText(message.text || ""); setEditing(true); }}
-                                        className="text-gray-200 focus:bg-white/10 rounded-xl cursor-pointer"
+                                        className="text-zinc-700 dark:text-zinc-200 focus:bg-black/[0.04] dark:focus:bg-white/[0.06] rounded cursor-pointer text-[14px]"
                                     >
-                                        <Pencil className="w-4 h-4 mr-2 opacity-60" />
-                                        Edit
+                                        <Pencil className="w-3.5 h-3.5 mr-2 opacity-60" />
+                                        Edit Message
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                         onClick={handleDelete}
-                                        className="text-red-400 focus:bg-red-500/10 focus:text-red-400 rounded-xl cursor-pointer"
+                                        className="text-red-500 focus:bg-red-500/10 focus:text-red-500 rounded cursor-pointer text-[14px]"
                                     >
-                                        <Trash2 className="w-4 h-4 mr-2 opacity-60" />
-                                        Delete
+                                        <Trash2 className="w-3.5 h-3.5 mr-2 opacity-60" />
+                                        Delete Message
                                     </DropdownMenuItem>
                                 </>
                             )}
                             <DropdownMenuItem
                                 onClick={handleReply}
-                                className="text-gray-200 focus:bg-white/10 rounded-xl cursor-pointer"
+                                className="text-zinc-700 dark:text-zinc-200 focus:bg-black/[0.04] dark:focus:bg-white/[0.06] rounded cursor-pointer text-[14px]"
                             >
-                                <Reply className="w-4 h-4 mr-2 opacity-60" />
+                                <Reply className="w-3.5 h-3.5 mr-2 opacity-60" />
                                 Reply
                             </DropdownMenuItem>
                         </DropdownMenuContent>

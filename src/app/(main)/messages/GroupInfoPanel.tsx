@@ -110,58 +110,50 @@ export default function GroupInfoPanel({ open, onClose }: GroupInfoPanelProps) {
     }, [channel]);
 
     if (!channel || !summary) {
-        return (
-            <aside
-                className={cn(
-                    "h-full rounded-2xl bg-[#1A1B27] border border-white/[0.04] flex-shrink-0",
-                    "w-[300px] xl:w-[320px]",
-                    "hidden lg:flex flex-col items-center justify-center text-white/40 text-sm",
-                )}
-            >
-                <p>Select a chat to see details</p>
-            </aside>
-        );
+        // Closed-by-default: don't take space when no channel selected
+        return null;
     }
 
     const { channelName } = summary;
 
+    // Closed by default — only render when explicitly open
+    if (!open) return null;
+
     return (
         <aside
             className={cn(
-                "h-full rounded-2xl bg-[#1A1B27] border border-white/[0.04] overflow-hidden flex-shrink-0",
+                "h-full bg-[#f2f3f5] dark:bg-[#2b2d31] border-l border-black/[0.06] dark:border-black/40 overflow-hidden flex-shrink-0 flex flex-col",
                 "w-full md:w-[300px] xl:w-[320px]",
-                open
-                    ? "flex absolute md:relative inset-0 z-50 md:z-auto flex-col"
-                    : "hidden lg:flex lg:flex-col",
+                "absolute md:relative inset-0 z-50 md:z-auto",
             )}
         >
-            <div className="flex items-center justify-between h-[60px] px-4 border-b border-white/[0.04] flex-shrink-0">
-                <h3 className="text-sm font-semibold text-white">Chat Details</h3>
+            <div className="flex items-center justify-between h-12 px-3 border-b border-black/[0.06] dark:border-black/40 shadow-sm flex-shrink-0">
+                <h3 className="text-[15px] font-semibold text-zinc-900 dark:text-white">Chat Details</h3>
                 <Button
                     size="icon"
                     variant="ghost"
                     onClick={onClose}
-                    className="h-8 w-8 text-white/60 hover:text-white hover:bg-white/10 rounded-full"
+                    className="h-7 w-7 text-zinc-600 dark:text-[#b5bac1] hover:text-zinc-900 dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] rounded"
                 >
                     <X className="size-4" />
                 </Button>
             </div>
 
-            <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent px-4 py-4 space-y-5">
+            <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-black/10 dark:scrollbar-thumb-white/10 scrollbar-track-transparent px-4 py-4 space-y-5">
                 {/* Photos and Videos */}
                 <section>
                     <div className="flex items-center justify-between mb-2.5">
-                        <h4 className="text-[12.5px] font-semibold text-white">
+                        <h4 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                             Photos and Videos
                         </h4>
                         {media.photos.length > 0 && (
-                            <button className="text-[11px] font-medium text-purple-400 hover:text-purple-300">
+                            <button className="text-[11px] font-medium text-[#5865f2] hover:underline">
                                 See all
                             </button>
                         )}
                     </div>
                     {media.photos.length === 0 ? (
-                        <div className="rounded-xl border border-dashed border-white/10 px-3 py-4 text-center text-xs text-white/40">
+                        <div className="rounded-md border border-dashed border-black/10 dark:border-white/10 px-3 py-4 text-center text-xs text-zinc-500 dark:text-zinc-400">
                             No photos shared yet
                         </div>
                     ) : (
@@ -172,7 +164,7 @@ export default function GroupInfoPanel({ open, onClose }: GroupInfoPanelProps) {
                                     href={p.url}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="aspect-square rounded-lg overflow-hidden bg-white/5 hover:opacity-80 transition-opacity"
+                                    className="aspect-square rounded overflow-hidden bg-black/[0.04] dark:bg-white/[0.04] hover:opacity-80 transition-opacity"
                                 >
                                     <img
                                         src={p.url}
@@ -188,41 +180,41 @@ export default function GroupInfoPanel({ open, onClose }: GroupInfoPanelProps) {
                 {/* Shared Files */}
                 <section>
                     <div className="flex items-center justify-between mb-2.5">
-                        <h4 className="text-[12.5px] font-semibold text-white">
+                        <h4 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                             Shared Files
                         </h4>
                         {media.files.length > 0 && (
-                            <button className="text-[11px] font-medium text-purple-400 hover:text-purple-300">
+                            <button className="text-[11px] font-medium text-[#5865f2] hover:underline">
                                 See all
                             </button>
                         )}
                     </div>
                     {media.files.length === 0 ? (
-                        <div className="rounded-xl border border-dashed border-white/10 px-3 py-4 text-center text-xs text-white/40">
+                        <div className="rounded-md border border-dashed border-black/10 dark:border-white/10 px-3 py-4 text-center text-xs text-zinc-500 dark:text-zinc-400">
                             No files shared yet
                         </div>
                     ) : (
-                        <div className="space-y-2">
+                        <div className="space-y-1.5">
                             {media.files.slice(0, 5).map((f, i) => (
                                 <a
                                     key={`${f.url}-${i}`}
                                     href={f.url}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="flex items-center gap-3 p-2.5 rounded-xl bg-[#0E0F18] hover:bg-[#161724] border border-white/[0.04] transition-colors"
+                                    className="flex items-center gap-3 p-2 rounded bg-white dark:bg-[#1e1f22] hover:bg-black/[0.02] dark:hover:bg-white/[0.04] border border-black/[0.06] dark:border-white/[0.04] transition-colors"
                                 >
-                                    <div className="flex-shrink-0 size-10 rounded-lg bg-purple-500/15 text-purple-300 flex items-center justify-center text-[10px] font-bold">
+                                    <div className="flex-shrink-0 size-9 rounded bg-[#5865f2]/15 text-[#5865f2] flex items-center justify-center text-[10px] font-bold">
                                         {fileTagFromMime(f.mime, f.title)}
                                     </div>
                                     <div className="min-w-0 flex-1">
-                                        <div className="text-[13px] font-medium text-white truncate">
+                                        <div className="text-[13px] font-medium text-zinc-900 dark:text-white truncate">
                                             {f.title}
                                         </div>
-                                        <div className="text-[11px] text-white/40">
+                                        <div className="text-[11px] text-zinc-500 dark:text-zinc-400">
                                             {formatBytes(f.size) || "Document"}
                                         </div>
                                     </div>
-                                    <FileText className="size-4 text-white/30 flex-shrink-0" />
+                                    <FileText className="size-4 text-zinc-400 dark:text-zinc-500 flex-shrink-0" />
                                 </a>
                             ))}
                         </div>
@@ -232,37 +224,37 @@ export default function GroupInfoPanel({ open, onClose }: GroupInfoPanelProps) {
                 {/* Shared Links */}
                 <section>
                     <div className="flex items-center justify-between mb-2.5">
-                        <h4 className="text-[12.5px] font-semibold text-white">
+                        <h4 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                             Shared Links
                         </h4>
                         {media.links.length > 0 && (
-                            <button className="text-[11px] font-medium text-purple-400 hover:text-purple-300">
+                            <button className="text-[11px] font-medium text-[#5865f2] hover:underline">
                                 See all
                             </button>
                         )}
                     </div>
                     {media.links.length === 0 ? (
-                        <div className="rounded-xl border border-dashed border-white/10 px-3 py-4 text-center text-xs text-white/40">
+                        <div className="rounded-md border border-dashed border-black/10 dark:border-white/10 px-3 py-4 text-center text-xs text-zinc-500 dark:text-zinc-400">
                             No links shared yet
                         </div>
                     ) : (
-                        <div className="space-y-2">
+                        <div className="space-y-1.5">
                             {media.links.slice(0, 5).map((l, i) => (
                                 <a
                                     key={`${l.url}-${i}`}
                                     href={l.url}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="flex items-center gap-3 p-2.5 rounded-xl bg-[#0E0F18] hover:bg-[#161724] border border-white/[0.04] transition-colors"
+                                    className="flex items-center gap-3 p-2 rounded bg-white dark:bg-[#1e1f22] hover:bg-black/[0.02] dark:hover:bg-white/[0.04] border border-black/[0.06] dark:border-white/[0.04] transition-colors"
                                 >
-                                    <div className="flex-shrink-0 size-10 rounded-lg bg-blue-500/15 text-blue-300 flex items-center justify-center">
+                                    <div className="flex-shrink-0 size-9 rounded bg-sky-500/15 text-sky-500 flex items-center justify-center">
                                         <LinkIcon className="size-4" />
                                     </div>
                                     <div className="min-w-0 flex-1">
-                                        <div className="text-[13px] font-medium text-white truncate">
+                                        <div className="text-[13px] font-medium text-zinc-900 dark:text-white truncate">
                                             {l.title || l.url}
                                         </div>
-                                        <div className="text-[11px] text-white/40 truncate">
+                                        <div className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
                                             {l.url.replace(/^https?:\/\//, "")}
                                         </div>
                                     </div>
@@ -274,60 +266,63 @@ export default function GroupInfoPanel({ open, onClose }: GroupInfoPanelProps) {
 
                 {/* About / Members short */}
                 <section>
-                    <h4 className="text-[12.5px] font-semibold text-white mb-2.5">
+                    <h4 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-2.5">
                         {summary.oneOnOne ? "About" : `Members · ${summary.members.length}`}
                     </h4>
                     {summary.oneOnOne ? (
-                        <div className="flex items-center gap-3 p-2.5 rounded-xl bg-[#0E0F18] border border-white/[0.04]">
-                            <Avatar className="h-10 w-10">
-                                <AvatarImage src={summary.channelImage} />
-                                <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white text-sm">
-                                    {channelName?.[0]?.toUpperCase() || "?"}
-                                </AvatarFallback>
-                            </Avatar>
+                        <div className="flex items-center gap-3 p-2 rounded bg-white dark:bg-[#1e1f22] border border-black/[0.06] dark:border-white/[0.04]">
+                            <div className="relative flex-shrink-0">
+                                <Avatar className="h-10 w-10">
+                                    <AvatarImage src={summary.channelImage} />
+                                    <AvatarFallback className="bg-[#5865f2] text-white text-sm">
+                                        {channelName?.[0]?.toUpperCase() || "?"}
+                                    </AvatarFallback>
+                                </Avatar>
+                                {summary.otherUser?.online && (
+                                    <span className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-[#23a55a] border-2 border-white dark:border-[#1e1f22]" />
+                                )}
+                            </div>
                             <div className="min-w-0 flex-1">
-                                <div className="text-[13px] font-medium text-white truncate">
+                                <div className="text-[13px] font-medium text-zinc-900 dark:text-white truncate">
                                     {channelName}
                                 </div>
-                                <div className="text-[11px] text-white/50">
-                                    {summary.otherUser?.online ? "Active now" : "Offline"}
+                                <div className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                                    {summary.otherUser?.online ? "Online" : "Offline"}
                                 </div>
                             </div>
                         </div>
                     ) : (
-                        <div className="space-y-1">
+                        <div className="space-y-0.5">
                             {summary.members.slice(0, 6).map((m) => {
                                 const u = m.user;
                                 const isMe = u?.id === client.userID;
                                 return (
                                     <div
                                         key={m.user_id || u?.id}
-                                        className="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-white/[0.04]"
+                                        className="flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-black/[0.04] dark:hover:bg-white/[0.04]"
                                     >
                                         <div className="relative flex-shrink-0">
-                                            <Avatar className="h-8 w-8">
-                                                <AvatarImage
-                                                    src={u?.image as string | undefined}
-                                                />
-                                                <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white text-[10px]">
+                                            <Avatar className="h-7 w-7">
+                                                <AvatarImage src={u?.image as string | undefined} />
+                                                <AvatarFallback className="bg-[#5865f2] text-white text-[10px]">
                                                     {(u?.name as string | undefined)?.[0]?.toUpperCase() || "?"}
                                                 </AvatarFallback>
                                             </Avatar>
                                             {u?.online && (
-                                                <span className="absolute bottom-0 right-0 size-2 rounded-full bg-green-500 ring-2 ring-[#1A1B27]" />
+                                                <span className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-[#23a55a] border-2 border-[#f2f3f5] dark:border-[#2b2d31]" />
                                             )}
                                         </div>
-                                        <span className="text-[13px] text-white truncate flex-1">
+                                        <span className="text-[13px] text-zinc-900 dark:text-zinc-100 truncate flex-1">
                                             {(u?.name as string | undefined) || u?.id}
                                             {isMe && (
-                                                <span className="ml-1 text-[10px] text-white/40">(you)</span>
+                                                <span className="ml-1 text-[10px] text-zinc-500 dark:text-zinc-400">(you)</span>
                                             )}
                                         </span>
                                     </div>
                                 );
                             })}
                             {summary.members.length > 6 && (
-                                <button className="w-full text-left px-2 py-1.5 text-[11px] font-medium text-purple-400 hover:text-purple-300">
+                                <button className="w-full text-left px-2 py-1.5 text-[11px] font-medium text-[#5865f2] hover:underline">
                                     See all {summary.members.length} members
                                 </button>
                             )}

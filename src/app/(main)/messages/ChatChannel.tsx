@@ -63,108 +63,105 @@ function ModernChannelHeader({
     const callsEnabled = isOneOnOne && callsReady;
 
     return (
-        <div className="flex items-center justify-between h-[60px] px-4 border-b border-white/[0.04] bg-[#1A1B27] rounded-t-2xl">
+        <div className="flex items-center justify-between h-12 px-3 border-b border-black/[0.06] dark:border-black/40 shadow-sm bg-white dark:bg-[#313338] flex-shrink-0">
             {/* Left side - Menu & User info */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 min-w-0">
                 <Button
                     size="icon"
                     variant="ghost"
                     onClick={openSidebar}
-                    className="md:hidden h-9 w-9 text-white hover:bg-white/10 rounded-full"
+                    className="md:hidden h-7 w-7 text-zinc-700 dark:text-[#b5bac1] hover:text-zinc-900 dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] rounded"
                 >
-                    <Menu className="size-5" />
+                    <Menu className="size-4" />
                 </Button>
 
-                <div className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity">
-                    <div className="relative">
-                        <Avatar className="h-10 w-10">
+                <div className="flex items-center gap-2 min-w-0">
+                    <div className="relative flex-shrink-0">
+                        <Avatar className="h-6 w-6">
                             <AvatarImage src={channelImage} className="object-cover" />
-                            <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white font-semibold text-sm">
+                            <AvatarFallback className="bg-[#5865f2] text-white font-semibold text-[10px]">
                                 {channelName?.[0]?.toUpperCase() || '?'}
                             </AvatarFallback>
                         </Avatar>
                         {isOnline && (
-                            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-black rounded-full" />
+                            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-[#23a55a] border-2 border-white dark:border-[#313338] rounded-full" />
                         )}
                     </div>
 
-                    <div>
-                        <h2 className="font-semibold text-white text-sm">{channelName}</h2>
-                        <p className="text-xs text-white/40">
-                            {isOneOnOne
-                                ? (isOnline ? 'Active now' : 'Offline')
-                                : `${memberCount} members`
-                            }
-                        </p>
-                    </div>
+                    <h2 className="font-semibold text-zinc-900 dark:text-white text-[15px] truncate">
+                        {channelName}
+                    </h2>
+                    <span className="hidden sm:block h-4 w-px bg-black/[0.08] dark:bg-white/[0.08] mx-1 flex-shrink-0" />
+                    <p className="hidden sm:block text-[12px] text-zinc-500 dark:text-zinc-400 truncate">
+                        {isOneOnOne
+                            ? (isOnline ? 'Online' : 'Offline')
+                            : `${memberCount} members`}
+                    </p>
                 </div>
             </div>
 
             {/* Right side - Actions */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-0.5 flex-shrink-0">
                 <Button
                     size="icon"
                     variant="ghost"
-                    className="h-9 w-9 text-white hover:bg-white/10 rounded-full disabled:opacity-40"
-                    title={callsEnabled ? "Voice call" : "Voice calls available in 1:1 chats"}
+                    className="h-8 w-8 text-zinc-600 dark:text-[#b5bac1] hover:text-zinc-900 dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] rounded disabled:opacity-40"
+                    title={callsEnabled ? "Start voice call" : "Voice calls available in 1:1 chats"}
                     disabled={!callsEnabled}
                     onClick={() => startCall(otherUserId, { videoEnabled: false })}
                 >
-                    <Phone className="size-[22px]" />
+                    <Phone className="size-[18px]" />
                 </Button>
                 <Button
                     size="icon"
                     variant="ghost"
-                    className="h-9 w-9 text-white hover:bg-white/10 rounded-full disabled:opacity-40"
-                    title={callsEnabled ? "Video call" : "Video calls available in 1:1 chats"}
+                    className="h-8 w-8 text-zinc-600 dark:text-[#b5bac1] hover:text-zinc-900 dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] rounded disabled:opacity-40"
+                    title={callsEnabled ? "Start video call" : "Video calls available in 1:1 chats"}
                     disabled={!callsEnabled}
                     onClick={() => startCall(otherUserId, { videoEnabled: true })}
                 >
-                    <Video className="size-[22px]" />
+                    <Video className="size-[18px]" />
                 </Button>
                 <Button
                     size="icon"
                     variant="ghost"
                     className={cn(
-                        "h-9 w-9 text-white hover:bg-white/10 rounded-full",
-                        infoOpen && "bg-white/10",
+                        "h-8 w-8 text-zinc-600 dark:text-[#b5bac1] hover:text-zinc-900 dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] rounded",
+                        infoOpen && "bg-black/[0.06] dark:bg-white/[0.10] text-zinc-900 dark:text-white",
                     )}
-                    title="Group info"
+                    title={infoOpen ? "Hide details" : "Show details"}
                     onClick={onToggleInfo}
                 >
-                    <Info className="size-[22px]" />
+                    <Info className="size-[18px]" />
                 </Button>
             </div>
         </div>
     );
 }
 
-// Empty state when no channel is selected - Instagram style
+// Empty state when no channel is selected - Discord style
 function EmptyChannelState() {
     return (
-        <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-[#1A1B27] rounded-2xl">
-            <div className="w-24 h-24 rounded-full border-2 border-white flex items-center justify-center mb-5">
+        <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-white dark:bg-[#313338]">
+            <div className="w-16 h-16 rounded-full bg-[#5865f2]/10 flex items-center justify-center mb-4">
                 <svg
-                    className="w-12 h-12 text-white"
+                    className="w-8 h-8 text-[#5865f2]"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
-                    strokeWidth={1}
+                    strokeWidth={1.5}
                 >
                     <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
+                        d="M2.25 12.76c0 1.6 1.123 2.994 2.707 3.227 1.068.157 2.148.279 3.238.364.466.037.893.281 1.153.671L12 21l2.652-3.978c.26-.39.687-.634 1.153-.67 1.09-.086 2.17-.208 3.238-.365 1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z"
                     />
                 </svg>
             </div>
-            <h3 className="text-xl font-normal text-white mb-1">Your messages</h3>
-            <p className="text-white/50 text-sm mb-5">
-                Send a message to start a chat.
+            <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-1">No conversation selected</h3>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                Pick a chat from the sidebar or start a new one.
             </p>
-            <Button className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg">
-                Send message
-            </Button>
         </div>
     );
 }
@@ -178,7 +175,7 @@ export default function ChatChannel({ open, openSidebar, onToggleInfo, infoOpen 
     return (
         <ComponentErrorBoundary componentName="Chat Channel">
             <div className={cn(
-                "relative flex-1 h-full min-h-0 rounded-2xl overflow-hidden bg-[#1A1B27] border border-white/[0.04]",
+                "relative flex-1 h-full min-h-0 overflow-hidden bg-white dark:bg-[#313338]",
                 open ? "flex flex-col" : "hidden md:flex md:flex-col"
             )}>
                 <ReplyContext.Provider value={{ replyingTo, setReplyingTo }}>
@@ -192,7 +189,7 @@ export default function ChatChannel({ open, openSidebar, onToggleInfo, infoOpen 
                                     onToggleInfo={onToggleInfo}
                                     infoOpen={infoOpen}
                                 />
-                                <div className="flex-1 overflow-hidden bg-[#1A1B27]">
+                                <div className="flex-1 overflow-hidden bg-white dark:bg-[#313338]">
                                     <MessageList
                                         Message={CustomMessage}
                                         messageActions={['edit', 'delete', 'react', 'reply']}
