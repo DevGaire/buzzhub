@@ -2,7 +2,9 @@
 
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { BadgeCheck } from "lucide-react";
+import kyInstance from "@/lib/ky";
+import { useMutation } from "@tanstack/react-query";
+import { BadgeCheck, Loader2 } from "lucide-react";
 
 export default function GetVerifiedClient({
   alreadyVerified,
@@ -10,6 +12,23 @@ export default function GetVerifiedClient({
   alreadyVerified: boolean;
 }) {
   const { toast } = useToast();
+
+  const { mutate, isPending } = useMutation({
+    mutationFn: () =>
+      kyInstance.post("/api/billing/checkout").json<{ url: string }>(),
+    onSuccess: ({ url }) => {
+      window.location.href = url;
+    },
+    onError: async (err: any) => {
+      const body = await err?.response?.json?.().catch(() => null);
+      toast({
+        variant: "destructive",
+        description:
+          body?.error ??
+          "Could not start checkout. Subscriptions may not be enabled yet.",
+      });
+    },
+  });
 
   if (alreadyVerified) {
     return (
@@ -24,13 +43,10 @@ export default function GetVerifiedClient({
     <Button
       size="lg"
       className="w-full"
-      onClick={() =>
-        toast({
-          description:
-            "Subscriptions aren't enabled yet. Check back soon — we're plugging in the payment provider.",
-        })
-      }
+      onClick={() => mutate()}
+      disabled={isPending}
     >
+      {isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
       Subscribe for £5/month
     </Button>
   );

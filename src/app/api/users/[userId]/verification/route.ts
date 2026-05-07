@@ -21,15 +21,31 @@ export async function POST(
 
     const target = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, isVerified: true },
+      select: { id: true, isVerified: true, verificationSource: true },
     });
     if (!target) {
       return Response.json({ error: "User not found" }, { status: 404 });
     }
 
+    // Granting: mark as admin-granted.
+    // Revoking: leave PAID subs alone — Stripe webhook owns those.
+    const nextVerified = !target.isVerified;
+    if (!nextVerified && target.verificationSource === "PAID") {
+      return Response.json(
+        {
+          error:
+            "This user has an active paid subscription. Cancel via Stripe instead.",
+        },
+        { status: 409 },
+      );
+    }
+
     const updated = await prisma.user.update({
       where: { id: userId },
-      data: { isVerified: !target.isVerified },
+      data: {
+        isVerified: nextVerified,
+        verificationSource: nextVerified ? "ADMIN" : null,
+      },
       select: { isVerified: true },
     });
 

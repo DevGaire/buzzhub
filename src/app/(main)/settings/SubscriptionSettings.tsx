@@ -3,8 +3,115 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Crown, Sparkles, Zap, Shield, Users, TrendingUp } from "lucide-react";
+import { BadgeCheck, Check, Crown, Loader2, Sparkles, Zap, Shield, Users, TrendingUp } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import kyInstance from "@/lib/ky";
+import Link from "next/link";
+
+type BillingMe = {
+  isVerified: boolean;
+  verificationSource: "ADMIN" | "PAID" | "OFFICIAL" | null;
+  subscription: {
+    status: string;
+    plan: string;
+    currentPeriodEnd: string | null;
+    cancelAtPeriodEnd: boolean;
+  } | null;
+};
+
+function VerifiedBadgeCard() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["billing-me"],
+    queryFn: () => kyInstance.get("/api/billing/me").json<BillingMe>(),
+  });
+
+  const portalMutation = useMutation({
+    mutationFn: () =>
+      kyInstance.post("/api/billing/portal").json<{ url: string }>(),
+    onSuccess: ({ url }) => {
+      window.location.href = url;
+    },
+    onError: async (err: any) => {
+      const body = await err?.response?.json?.().catch(() => null);
+      toast({
+        variant: "destructive",
+        description: body?.error ?? "Could not open billing portal",
+      });
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center gap-2 p-6 text-sm text-muted-foreground">
+          <Loader2 className="size-4 animate-spin" /> Loading subscription…
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const sub = data?.subscription;
+  const source = data?.verificationSource;
+  const periodEnd = sub?.currentPeriodEnd
+    ? new Date(sub.currentPeriodEnd).toLocaleDateString()
+    : null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <BadgeCheck className="size-5 text-blue-500" />
+          Verified badge
+        </CardTitle>
+        <CardDescription>
+          The blue tick next to your name. £5/month, cancel anytime.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex items-center justify-between rounded-lg border p-4">
+          <div>
+            <p className="font-medium">
+              {data?.isVerified ? "Verified" : "Not verified"}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {source === "PAID" && sub
+                ? `Subscription ${sub.status}${
+                    periodEnd ? ` · renews ${periodEnd}` : ""
+                  }${sub.cancelAtPeriodEnd ? " (cancels at period end)" : ""}`
+                : source === "ADMIN"
+                  ? "Granted by the BuzzHub team"
+                  : source === "OFFICIAL"
+                    ? "Official BuzzHub account"
+                    : "Subscribe to get the badge"}
+            </p>
+          </div>
+          <Badge variant={data?.isVerified ? "default" : "secondary"}>
+            {data?.isVerified ? "Active" : "Inactive"}
+          </Badge>
+        </div>
+
+        {sub ? (
+          <Button
+            className="w-full"
+            variant="outline"
+            onClick={() => portalMutation.mutate()}
+            disabled={portalMutation.isPending}
+          >
+            {portalMutation.isPending && (
+              <Loader2 className="mr-2 size-4 animate-spin" />
+            )}
+            Manage subscription
+          </Button>
+        ) : (
+          <Button asChild className="w-full">
+            <Link href="/verified-badge">Get verified for £5/month</Link>
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 const plans = [
   {
@@ -61,6 +168,8 @@ export default function SubscriptionSettings() {
 
   return (
     <div className="space-y-6">
+      <VerifiedBadgeCard />
+
       <Card>
         <CardHeader>
           <CardTitle>Current Plan</CardTitle>

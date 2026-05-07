@@ -4,8 +4,8 @@ Single source of truth. Tick boxes as work lands. Phases are ordered: each one a
 
 **How to resume after a context reset:** read this file top-to-bottom, find the first unchecked `[ ]` item, continue from there. Update the "Current focus" line below before you stop.
 
-> **Current focus:** Phase 0 finishing — Vitest test runner + Sentry verification, then Phase 1 (Stripe).
-> **Last commit:** `47a655fd6` — Phase 0 hygiene: roadmap, env validation, /api/health.
+> **Current focus:** Phase 1 finishing — set Stripe env vars + run `stripe listen` against the webhook. Then Phase 2 (trust & safety / admin dashboard).
+> **Last commit:** _pending — Phase 1 Stripe integration._
 
 ---
 
@@ -26,15 +26,16 @@ Clean up before piling on features. Small wins, low risk.
 
 Make the £5/month verification button real.
 
-- [ ] Add Stripe SDK (`stripe`, `@stripe/stripe-js`).
-- [ ] Schema: add `Subscription` model (id, userId, stripeCustomerId, stripeSubscriptionId, status, currentPeriodEnd, plan, createdAt).
-- [ ] Migration for the new model.
-- [ ] Env vars: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ID_VERIFIED`.
-- [ ] `POST /api/billing/checkout` — creates a Stripe Checkout Session, returns the URL.
-- [ ] Wire `GetVerifiedClient.tsx` Subscribe button to that endpoint.
-- [ ] `POST /api/billing/webhook` — handles `customer.subscription.created/updated/deleted`. On active → set `isVerified=true`. On canceled/past_due → set `isVerified=false` (only if the badge came from a paid sub, not admin grant).
-- [ ] Track grant source: extend schema with `verificationSource` enum (`PAID`, `ADMIN`, `OFFICIAL`) so admin-granted badges aren't auto-revoked when a sub lapses.
-- [ ] Billing portal link in `/settings` → `POST /api/billing/portal` returning a Stripe Customer Portal URL.
+- [x] Add Stripe SDK (`stripe`).
+- [x] Schema: add `Subscription` model (id, userId, stripeCustomerId, stripeSubscriptionId, status, currentPeriodEnd, plan, createdAt).
+- [x] Migration for the new model.
+- [ ] Env vars: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ID_VERIFIED` — set in `.env` once you have a Stripe account + £5/mo price.
+- [x] `POST /api/billing/checkout` — creates a Stripe Checkout Session, returns the URL.
+- [x] Wire `GetVerifiedClient.tsx` Subscribe button to that endpoint.
+- [x] `POST /api/billing/webhook` — handles `customer.subscription.created/updated/deleted`. On active → set `isVerified=true`. On canceled/past_due → set `isVerified=false` only if `verificationSource=PAID`.
+- [x] Track grant source: `verificationSource` enum (`PAID`, `ADMIN`, `OFFICIAL`) — admin grants set `ADMIN`, webhook sets `PAID`, `@buzzhub` is `OFFICIAL`.
+- [x] Billing portal link in `/settings` → `POST /api/billing/portal` returning a Stripe Customer Portal URL.
+- [x] `GET /api/billing/me` — current user's subscription + verification status, used by Settings.
 - [ ] Receipt email via Brevo on successful charge (Stripe sends its own; decide if we duplicate).
 - [ ] Test the webhook with `stripe listen --forward-to localhost:3000/api/billing/webhook`.
 
