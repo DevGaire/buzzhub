@@ -14,9 +14,22 @@ export const metadata = {
 };
 
 async function getTrendingTopics() {
+  // Read the precomputed table first (refreshed by /api/trending/refresh
+  // cron). Fall back to a live 24h aggregation if the table is empty —
+  // happens before the first cron run.
+  const cached = await prisma.trendingTag.findMany({
+    orderBy: [{ count: "desc" }, { tag: "asc" }],
+    take: 10,
+  });
+  if (cached.length > 0) {
+    return cached.map((t) => ({ hashtag: t.tag, count: t.count }));
+  }
   const rows = await prisma.$queryRaw<{ hashtag: string; count: bigint }[]>`
     SELECT LOWER(unnest(regexp_matches(content, '#[[:alnum:]_]+', 'g'))) AS hashtag, COUNT(*) AS count
     FROM posts
+    WHERE "createdAt" >= NOW() - INTERVAL '24 hours'
+      AND archived = false
+      AND "deletedAt" IS NULL
     GROUP BY (hashtag)
     ORDER BY count DESC, hashtag ASC
     LIMIT 10

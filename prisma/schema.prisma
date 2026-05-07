@@ -68,6 +68,15 @@ model PushSubscription {
   @@map("push_subscriptions")
 }
 
+model TrendingTag {
+  tag         String   @id
+  count       Int
+  refreshedAt DateTime @default(now())
+
+  @@index([count(sort: Desc)])
+  @@map("trending_tags")
+}
+
 enum VerificationSource {
   ADMIN
   PAID

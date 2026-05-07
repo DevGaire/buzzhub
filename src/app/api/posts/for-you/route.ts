@@ -55,9 +55,21 @@ export async function GET(req: NextRequest) {
       return Response.json(data);
     }
 
-    // First page: engagement-scored ranking
-    // Fetch a larger pool and sort by score
+    // First page: engagement-scored ranking.
+    // Fetch a larger pool — followees + friends-of-friends — and sort by score.
     const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+
+    const fofRows = followingIds.length
+      ? await prisma.follow.findMany({
+          where: { followerId: { in: followingIds } },
+          select: { followingId: true },
+          take: 500,
+        })
+      : [];
+    const fofIds = Array.from(
+      new Set(fofRows.map((r) => r.followingId)),
+    ).filter((id) => id !== user.id && !hiddenIds.includes(id));
+
     const pool = await prisma.post.findMany({
       where: {
         ...visiblePostFilter,
@@ -68,25 +80,43 @@ export async function GET(req: NextRequest) {
       },
       include: getPostDataInclude(user.id),
       orderBy: { createdAt: "desc" },
-      take: 60,
+      take: 80,
     });
 
-    // Score: likes×3 + comments×2 + following boost×10 + recency decay
+    // Score: likes×1 + comments×2 + bookmarks×3 + follow/fof boost + recency decay.
     const now = Date.now();
+    const fofSet = new Set(fofIds);
+    const followSet = new Set(followingIds);
     const scored = pool.map((post) => {
       const ageHours = (now - new Date(post.createdAt).getTime()) / 3_600_000;
       const recency = Math.max(0, 1 - ageHours / 72); // decay over 72h
-      const followBoost = followingIds.includes(post.userId) ? 10 : 0;
+      const followBoost = followSet.has(post.userId)
+        ? 10
+        : fofSet.has(post.userId)
+          ? 4
+          : 0;
+      const bookmarkCount = (post as any).bookmarks?.length ?? 0;
       const score =
-        post._count.likes * 3 +
+        post._count.likes * 1 +
         post._count.comments * 2 +
+        bookmarkCount * 3 +
         followBoost +
         recency * 15;
       return { post, score };
     });
 
     scored.sort((a, b) => b.score - a.score);
-    const topPosts = scored.slice(0, pageSize).map((s) => s.post);
+
+    // Diversity: cap to 2 posts per author in the top page.
+    const perAuthor = new Map<string, number>();
+    const topPosts: typeof pool = [];
+    for (const { post } of scored) {
+      const n = perAuthor.get(post.userId) ?? 0;
+      if (n >= 2) continue;
+      perAuthor.set(post.userId, n + 1);
+      topPosts.push(post);
+      if (topPosts.length >= pageSize) break;
+    }
 
     // If pool is small, fetch older posts for next cursor pagination
     const oldPosts = await prisma.post.findMany({

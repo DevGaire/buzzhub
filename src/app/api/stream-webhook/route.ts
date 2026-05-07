@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendEmail } from "@/lib/email";
+import { pushToUser } from "@/lib/push";
 
 // Simple HMAC verification can be added if using Stream's signature. For now, use a shared secret header.
 function verifyAuth(req: NextRequest) {
@@ -83,6 +84,15 @@ export async function POST(req: NextRequest) {
   const promises: Promise<unknown>[] = [];
 
   for (const r of recipients) {
+    // Stream user IDs match our app user IDs (set up in MenuBar.tsx upsertUser).
+    if (r.id) {
+      pushToUser(r.id, {
+        title: `${subjectBase} sent you a message`,
+        body: preview || "New message",
+        url: `/messages?cid=${encodeURIComponent(channelId)}`,
+      }).catch(() => {});
+    }
+
     // Basic offline check: if online === false OR no online flag present, we still notify for mentions
     // In production, query presence or track last_seen to decide; you can refine this later.
     const shouldNotify = true;

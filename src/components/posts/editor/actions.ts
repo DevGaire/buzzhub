@@ -2,6 +2,7 @@
 
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
+import { pushToUser } from "@/lib/push";
 import { limit } from "@/lib/rate-limit";
 import { getPostDataInclude } from "@/lib/types";
 import { createPostSchema } from "@/lib/validation";
@@ -70,12 +71,23 @@ export async function submitPost(input: {
       where: { username: { in: mentioned } },
       select: { id: true },
     });
+    const recipients = users.filter((u) => u.id !== user.id);
     await prisma.notification.createMany({
-      data: users
-        .filter((u) => u.id !== user.id)
-        .map((u) => ({ issuerId: user.id, recipientId: u.id, postId: newPost.id, type: "MENTION" })),
+      data: recipients.map((u) => ({
+        issuerId: user.id,
+        recipientId: u.id,
+        postId: newPost.id,
+        type: "MENTION",
+      })),
       skipDuplicates: true,
     });
+    for (const r of recipients) {
+      pushToUser(r.id, {
+        title: `${user.displayName} mentioned you`,
+        body: content.slice(0, 80),
+        url: `/posts/${newPost.id}`,
+      }).catch(() => {});
+    }
   }
 
   return newPost;
