@@ -5,7 +5,7 @@ Single source of truth. Tick boxes as work lands. Phases are ordered: each one a
 **How to resume after a context reset:** read this file top-to-bottom, find the first unchecked `[ ]` item, continue from there. Update the "Current focus" line below before you stop.
 
 > **Current focus:** Phase 0 finishing — Vitest test runner + Sentry verification, then Phase 1 (Stripe).
-> **Last commit:** _pending — Phase 0 hygiene batch._
+> **Last commit:** `47a655fd6` — Phase 0 hygiene: roadmap, env validation, /api/health.
 
 ---
 
