@@ -23,6 +23,7 @@ export const lucia = new Lucia(adapter, {
       coverUrl: databaseUserAttributes.coverUrl,
       googleId: databaseUserAttributes.googleId,
       isVerified: databaseUserAttributes.isVerified,
+      isAdmin: databaseUserAttributes.isAdmin,
       pinnedPostId: databaseUserAttributes.pinnedPostId,
     };
   },
@@ -43,6 +44,7 @@ interface DatabaseUserAttributes {
   coverUrl: string | null;
   googleId: string | null;
   isVerified: boolean;
+  isAdmin: boolean;
   pinnedPostId: string | null;
 }
 

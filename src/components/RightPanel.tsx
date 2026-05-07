@@ -10,6 +10,7 @@ import { useState } from "react";
 import type { RecentConversation } from "@/app/api/messages/recent/route";
 import type { UserData } from "@/lib/types";
 import FollowButton from "./FollowButton";
+import VerifiedBadge from "./VerifiedBadge";
 
 /* ── Online dot ──────────────────────────────────────── */
 function OnlineDot({ online }: { online: boolean }) {
@@ -192,8 +193,9 @@ function SuggestionsSection({ users, currentUserId }: SuggestionsSectionProps) {
             </Link>
             <div className="min-w-0 flex-1">
               <Link href={`/users/${u.username}`}>
-                <p className="truncate text-sm font-semibold hover:underline">
-                  {u.displayName}
+                <p className="flex items-center gap-1 truncate text-sm font-semibold hover:underline">
+                  <span className="truncate">{u.displayName}</span>
+                  {u.isVerified && <VerifiedBadge size="sm" />}
                 </p>
                 <p className="truncate text-xs text-muted-foreground">
                   @{u.username}

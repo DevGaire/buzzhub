@@ -9,6 +9,7 @@ export function getUserDataSelect(loggedInUserId: string) {
     coverUrl: true,
     bio: true,
     isVerified: true,
+    isAdmin: true,
     pinnedPostId: true,
     createdAt: true,
     followers: {

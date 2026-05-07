@@ -16,6 +16,7 @@ import UserPosts from "./UserPosts";
 import { CalendarDays, Pin } from "lucide-react";
 import ProfileStoryAvatar from "./ProfileStoryAvatar";
 import BlockButton from "./BlockButton";
+import VerifyToggleButton from "./VerifyToggleButton";
 import Post from "@/components/posts/Post";
 import Image from "next/image";
 
@@ -68,7 +69,12 @@ export default async function Page({ params: { username } }: PageProps) {
 
   return (
     <div className="space-y-4">
-      <UserProfile user={user} loggedInUserId={loggedInUser.id} pinnedPost={pinnedPost} />
+      <UserProfile
+        user={user}
+        loggedInUserId={loggedInUser.id}
+        loggedInUserIsAdmin={loggedInUser.isAdmin}
+        pinnedPost={pinnedPost}
+      />
       <div className="rounded-2xl bg-card p-5 shadow-sm">
         <h2 className="text-center text-2xl font-bold">{user.displayName}&apos;s posts</h2>
       </div>
@@ -80,10 +86,16 @@ export default async function Page({ params: { username } }: PageProps) {
 interface UserProfileProps {
   user: UserData;
   loggedInUserId: string;
+  loggedInUserIsAdmin: boolean;
   pinnedPost: any | null;
 }
 
-async function UserProfile({ user, loggedInUserId, pinnedPost }: UserProfileProps) {
+async function UserProfile({
+  user,
+  loggedInUserId,
+  loggedInUserIsAdmin,
+  pinnedPost,
+}: UserProfileProps) {
   const followerInfo: FollowerInfo = {
     followers: user._count.followers,
     isFollowedByUser: user.followers.some(({ followerId }) => followerId === loggedInUserId),
@@ -123,6 +135,12 @@ async function UserProfile({ user, loggedInUserId, pinnedPost }: UserProfileProp
                 <EditProfileButton user={user} />
               ) : (
                 <>
+                  {loggedInUserIsAdmin && (
+                    <VerifyToggleButton
+                      userId={user.id}
+                      isVerified={user.isVerified}
+                    />
+                  )}
                   <BlockButton userId={user.id} />
                   <FollowButton userId={user.id} initialState={followerInfo} />
                 </>

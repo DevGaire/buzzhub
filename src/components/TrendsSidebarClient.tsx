@@ -3,6 +3,7 @@
 import FollowButton from "./FollowButton";
 import UserTooltip from "./UserTooltip";
 import PostUserAvatar from "./PostUserAvatar";
+import VerifiedBadge from "./VerifiedBadge";
 import { UserData } from "@/lib/types";
 import Link from "next/link";
 
@@ -23,8 +24,9 @@ export function WhoToFollowItem({ user, currentUserId }: WhoToFollowItemProps) {
             className="flex-shrink-0"
           />
           <Link href={`/users/${user.username}`} className="min-w-0">
-            <p className="truncate text-sm font-semibold leading-tight hover:underline">
-              {user.displayName}
+            <p className="flex items-center gap-1 truncate text-sm font-semibold leading-tight hover:underline">
+              <span className="truncate">{user.displayName}</span>
+              {user.isVerified && <VerifiedBadge size="sm" />}
             </p>
             <p className="truncate text-xs text-muted-foreground">
               @{user.username}

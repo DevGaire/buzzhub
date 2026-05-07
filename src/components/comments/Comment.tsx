@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useState } from "react";
 import UserAvatar from "../UserAvatar";
 import UserTooltip from "../UserTooltip";
+import VerifiedBadge from "../VerifiedBadge";
 import CommentMoreButton from "./CommentMoreButton";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
@@ -186,9 +187,10 @@ export default function Comment({ comment, postId, initialExpanded = false }: Co
                                 <UserTooltip user={comment.user}>
                                     <Link
                                         href={`/users/${comment.user.username}`}
-                                        className="font-semibold hover:underline"
+                                        className="flex items-center gap-1 font-semibold hover:underline"
                                     >
                                         {comment.user.displayName}
+                                        {comment.user.isVerified && <VerifiedBadge size="sm" />}
                                     </Link>
                                 </UserTooltip>
                                 <span className="text-muted-foreground">
@@ -460,9 +462,10 @@ function ReplyItem({
                             <UserTooltip user={reply.user}>
                                 <Link
                                     href={`/users/${reply.user.username}`}
-                                    className="font-semibold hover:underline"
+                                    className="flex items-center gap-1 font-semibold hover:underline"
                                 >
                                     {reply.user.displayName}
+                                    {reply.user.isVerified && <VerifiedBadge size="sm" />}
                                 </Link>
                             </UserTooltip>
                             <span className="text-muted-foreground text-xs">
