@@ -29,7 +29,7 @@ Make the £5/month verification button real.
 - [x] Add Stripe SDK (`stripe`).
 - [x] Schema: add `Subscription` model (id, userId, stripeCustomerId, stripeSubscriptionId, status, currentPeriodEnd, plan, createdAt).
 - [x] Migration for the new model.
-- [ ] Env vars: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ID_VERIFIED` — set in `.env` once you have a Stripe account + £5/mo price.
+- [x] Env vars: `STRIPE_SECRET_KEY` and `STRIPE_PRICE_ID_VERIFIED` set via `scripts/setup-stripe.mjs` (creates product + £5/mo price, writes ID back into `.env`). `STRIPE_WEBHOOK_SECRET` still pending (needs `stripe listen` on local).
 - [x] `POST /api/billing/checkout` — creates a Stripe Checkout Session, returns the URL.
 - [x] Wire `GetVerifiedClient.tsx` Subscribe button to that endpoint.
 - [x] `POST /api/billing/webhook` — handles `customer.subscription.created/updated/deleted`. On active → set `isVerified=true`. On canceled/past_due → set `isVerified=false` only if `verificationSource=PAID`.
