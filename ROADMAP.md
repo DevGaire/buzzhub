@@ -5,7 +5,7 @@ Single source of truth. Tick boxes as work lands. Phases are ordered: each one a
 **How to resume after a context reset:** read this file top-to-bottom, find the first unchecked `[ ]` item, continue from there. Update the "Current focus" line below before you stop.
 
 > **Current focus:** Phase 2 wrap-up (bulk-hide posts on /admin, optional 2FA), then Phase 3 — push notifications + email digest verification.
-> **Last commit:** _pending — Phase 2 admin dashboard + suspension + rate limits._
+> **Last commit:** `11535413a` — Phase 2 admin dashboard + suspension + rate limits.
 
 ---
 
