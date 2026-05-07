@@ -5,7 +5,7 @@ Single source of truth. Tick boxes as work lands. Phases are ordered: each one a
 **How to resume after a context reset:** read this file top-to-bottom, find the first unchecked `[ ]` item, continue from there. Update the "Current focus" line below before you stop.
 
 > **Current focus:** Phase 3 finishing (mentions + DM push, email digest verification, in-app live), then Phase 4 (discovery / feed quality).
-> **Last commit:** _pending — Phase 2 bulk-hide + Phase 3 web push._
+> **Last commit:** `2783433cf` — Phase 2 bulk-hide + Phase 3 web push.
 
 ---
 
