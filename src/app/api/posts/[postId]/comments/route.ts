@@ -1,5 +1,6 @@
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
+import { limit, rateLimitResponse } from "@/lib/rate-limit";
 import { CommentsPage, getCommentDataInclude } from "@/lib/types";
 import { NextRequest } from "next/server";
 
@@ -61,6 +62,21 @@ export async function POST(
     if (!user) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { suspendedAt: true },
+    });
+    if (dbUser?.suspendedAt) {
+      return Response.json(
+        { error: "Your account is suspended." },
+        { status: 403 },
+      );
+    }
+
+    // 30 comments per minute per user.
+    const rl = limit(`comment:${user.id}`, 30, 60_000);
+    if (!rl.ok) return rateLimitResponse(rl);
 
     const body = await req.json();
     const { content, parentId } = body;

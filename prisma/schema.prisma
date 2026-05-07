@@ -22,6 +22,8 @@ model User {
   isVerified              Boolean                  @default(false)
   verificationSource      VerificationSource?
   isAdmin                 Boolean                  @default(false)
+  suspendedAt             DateTime?
+  suspendedReason         String?
   pinnedPostId            String?
   createdAt               DateTime                 @default(now())
   emailVerifiedAt         DateTime?
@@ -103,6 +105,7 @@ model Post {
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
   archived            Boolean        @default(false)
+  deletedAt           DateTime?
   visibility          PostVisibility @default(PUBLIC)
   quotedPostId        String?
   bookmarks           Bookmark[]
@@ -399,12 +402,15 @@ model Report {
   targetId     String
   reason       String
   status       ReportStatus @default(OPEN)
+  resolvedAt   DateTime?
+  resolvedById String?
   createdAt    DateTime     @default(now())
 
   createdBy    User         @relation(fields: [createdById], references: [id], onDelete: Cascade)
 
   @@index([createdById])
   @@index([targetType, targetId])
+  @@index([status, createdAt])
   @@map("reports")
 }
 

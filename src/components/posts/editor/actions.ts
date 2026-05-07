@@ -2,6 +2,7 @@
 
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
+import { limit } from "@/lib/rate-limit";
 import { getPostDataInclude } from "@/lib/types";
 import { createPostSchema } from "@/lib/validation";
 
@@ -14,6 +15,20 @@ export async function submitPost(input: {
 }) {
   const { user } = await validateRequest();
   if (!user) throw new Error("Unauthorized");
+
+  const guard = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { suspendedAt: true },
+  });
+  if (guard?.suspendedAt) {
+    throw new Error("Your account is suspended.");
+  }
+
+  // 10 posts per minute per user.
+  const rl = limit(`post:${user.id}`, 10, 60_000);
+  if (!rl.ok) {
+    throw new Error("Slow down — you're posting too quickly.");
+  }
 
   const { content, mediaIds, visibility } = createPostSchema.parse(input as any);
   const mappedVisibility =

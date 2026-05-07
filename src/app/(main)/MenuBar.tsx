@@ -39,6 +39,7 @@ export default async function MenuBar({ className }: MenuBarProps) {
         username: user.username,
         avatarUrl: user.avatarUrl ?? null,
       }}
+      isAdmin={user.isAdmin}
       unreadNotificationsCount={unreadNotificationsCount}
       unreadMessagesCount={unreadMessagesCount}
     />

@@ -32,6 +32,8 @@ async function buildUserDigest(userId: string) {
       where: {
         userId: { in: followingIds },
         archived: false,
+        deletedAt: null,
+        user: { suspendedAt: null },
         createdAt: { gte: since },
       },
       select: { id: true, content: true, createdAt: true, _count: { select: { likes: true } } },

@@ -1,5 +1,6 @@
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
+import { visiblePostFilter } from "@/lib/moderation";
 import { getPostDataInclude, PostsPage } from "@/lib/types";
 import { NextRequest } from "next/server";
 
@@ -38,6 +39,7 @@ export async function GET(req: NextRequest) {
       // Cursor-based page: simple recent order
       const posts = await prisma.post.findMany({
         where: {
+          ...visiblePostFilter,
           archived: false,
           visibility: "PUBLIC",
           userId: { notIn: hiddenIds },
@@ -58,6 +60,7 @@ export async function GET(req: NextRequest) {
     const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
     const pool = await prisma.post.findMany({
       where: {
+        ...visiblePostFilter,
         archived: false,
         visibility: "PUBLIC",
         userId: { notIn: hiddenIds },
@@ -88,6 +91,7 @@ export async function GET(req: NextRequest) {
     // If pool is small, fetch older posts for next cursor pagination
     const oldPosts = await prisma.post.findMany({
       where: {
+        ...visiblePostFilter,
         archived: false,
         visibility: "PUBLIC",
         userId: { notIn: hiddenIds },

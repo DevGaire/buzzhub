@@ -24,9 +24,11 @@ export async function GET(req: NextRequest) {
       where: {
         user: {
           followers: { some: { followerId: user.id } },
+          suspendedAt: null,
         },
         userId: { notIn: hiddenIds },
         archived: false,
+        deletedAt: null,
       },
       orderBy: { createdAt: "desc" },
       take: pageSize + 1,

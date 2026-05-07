@@ -1,5 +1,6 @@
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
+import { visiblePostFilter } from "@/lib/moderation";
 import { getPostDataInclude } from "@/lib/types";
 import { formatNumber } from "@/lib/utils";
 import Post from "@/components/posts/Post";
@@ -27,7 +28,7 @@ async function getTrendingPosts(loggedInUserId: string) {
   // Top posts by like count in the last 7 days
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const posts = await prisma.post.findMany({
-    where: { createdAt: { gte: sevenDaysAgo }, archived: false },
+    where: { ...visiblePostFilter, createdAt: { gte: sevenDaysAgo }, archived: false },
     include: getPostDataInclude(loggedInUserId),
     orderBy: [{ likes: { _count: "desc" } }, { createdAt: "desc" }],
     take: 25,

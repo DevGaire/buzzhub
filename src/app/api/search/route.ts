@@ -1,5 +1,6 @@
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
+import { visiblePostFilter } from "@/lib/moderation";
 import { getPostDataInclude, PostsPage } from "@/lib/types";
 import { NextRequest } from "next/server";
 
@@ -21,6 +22,7 @@ export async function GET(req: NextRequest) {
 
     const posts = await prisma.post.findMany({
       where: {
+        ...visiblePostFilter,
         OR: [
           {
             content: {

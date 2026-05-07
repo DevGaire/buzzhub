@@ -1,5 +1,6 @@
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
+import { visiblePostFilter } from "@/lib/moderation";
 import { getPostDataInclude } from "@/lib/types";
 import Post from "@/components/posts/Post";
 import { Hash } from "lucide-react";
@@ -22,6 +23,7 @@ export default async function HashtagPage({ params: { tag } }: PageProps) {
 
   const posts = await prisma.post.findMany({
     where: {
+      ...visiblePostFilter,
       content: { contains: searchTag, mode: "insensitive" },
       archived: false,
     },

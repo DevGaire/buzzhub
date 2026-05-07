@@ -4,8 +4,8 @@ Single source of truth. Tick boxes as work lands. Phases are ordered: each one a
 
 **How to resume after a context reset:** read this file top-to-bottom, find the first unchecked `[ ]` item, continue from there. Update the "Current focus" line below before you stop.
 
-> **Current focus:** Phase 1 finishing — set Stripe env vars + run `stripe listen` against the webhook. Then Phase 2 (trust & safety / admin dashboard).
-> **Last commit:** `7d7668539` — Phase 1 Stripe integration.
+> **Current focus:** Phase 2 wrap-up (bulk-hide posts on /admin, optional 2FA), then Phase 3 — push notifications + email digest verification.
+> **Last commit:** _pending — Phase 2 admin dashboard + suspension + rate limits._
 
 ---
 
@@ -29,7 +29,7 @@ Make the £5/month verification button real.
 - [x] Add Stripe SDK (`stripe`).
 - [x] Schema: add `Subscription` model (id, userId, stripeCustomerId, stripeSubscriptionId, status, currentPeriodEnd, plan, createdAt).
 - [x] Migration for the new model.
-- [x] Env vars: `STRIPE_SECRET_KEY` and `STRIPE_PRICE_ID_VERIFIED` set via `scripts/setup-stripe.mjs` (creates product + £5/mo price, writes ID back into `.env`). `STRIPE_WEBHOOK_SECRET` still pending (needs `stripe listen` on local).
+- [x] Env vars: `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID_VERIFIED`, `STRIPE_WEBHOOK_SECRET` all set. Stripe CLI installed via winget; secret retrieved with `stripe listen --print-secret --api-key …`.
 - [x] `POST /api/billing/checkout` — creates a Stripe Checkout Session, returns the URL.
 - [x] Wire `GetVerifiedClient.tsx` Subscribe button to that endpoint.
 - [x] `POST /api/billing/webhook` — handles `customer.subscription.created/updated/deleted`. On active → set `isVerified=true`. On canceled/past_due → set `isVerified=false` only if `verificationSource=PAID`.
@@ -37,19 +37,20 @@ Make the £5/month verification button real.
 - [x] Billing portal link in `/settings` → `POST /api/billing/portal` returning a Stripe Customer Portal URL.
 - [x] `GET /api/billing/me` — current user's subscription + verification status, used by Settings.
 - [ ] Receipt email via Brevo on successful charge (Stripe sends its own; decide if we duplicate).
-- [ ] Test the webhook with `stripe listen --forward-to localhost:3000/api/billing/webhook`.
+- [ ] Smoke test: with `stripe listen --forward-to localhost:3000/api/billing/webhook` running, complete a Checkout flow with card 4242 4242 4242 4242 and confirm the badge flips on.
 
 ## Phase 2 — Trust & safety
 
 Reports already have a model but no admin UI; add it.
 
-- [ ] Admin dashboard at `/admin` (gated by `isAdmin`) — list of OPEN reports, sortable by date.
-- [ ] Resolve / reject report actions (POST `/api/admin/reports/[id]`).
-- [ ] User suspension: add `suspendedAt`, `suspendedReason` to User; suspended users can't post/comment.
-- [ ] Soft-delete posts: add `deletedAt` to Post; filter out in feed queries.
-- [ ] Mass-action: bulk hide all posts by a reported user.
-- [ ] Rate limit comments and posts using existing Upstash ratelimit (`@upstash/ratelimit` is already in deps).
+- [x] Admin dashboard at `/admin` (gated by `isAdmin`) — list of OPEN reports with reporter, target, and reason.
+- [x] Resolve / reject report actions (POST `/api/admin/reports/[id]` with `{action:"RESOLVE"|"REJECT"}`). Resolving a POST report soft-deletes the post; resolving a COMMENT report deletes the comment.
+- [x] User suspension: `suspendedAt` + `suspendedReason` on User; `POST /api/admin/users/[userId]/suspend` toggles. Suspended users can't post or comment (server actions + comment route both reject).
+- [x] Soft-delete posts: `deletedAt` on Post; `visiblePostFilter` helper in `src/lib/moderation.ts` applied to all feed queries (for-you, following, profile, bookmarked, search, hashtag, explore, digests).
+- [ ] Mass-action: bulk hide all posts by a reported user (single-click "delete all posts" button on /admin).
+- [x] Rate limit comments and posts via in-memory bucket (`src/lib/rate-limit.ts`) — 10 posts/min, 30 comments/min per user. Swap for `@upstash/ratelimit` once `UPSTASH_REDIS_REST_URL` is set in env.
 - [ ] 2FA via TOTP for admin accounts (lucky we already have email verification scaffolding).
+- [x] Admin link in sidebar (visible only when `isAdmin`).
 
 ## Phase 3 — Notifications & engagement loop
 

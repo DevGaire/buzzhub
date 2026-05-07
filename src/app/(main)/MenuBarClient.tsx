@@ -10,6 +10,7 @@ import {
   Home,
   Mail,
   Settings,
+  Shield,
   User,
 } from "lucide-react";
 import Link from "next/link";
@@ -25,6 +26,7 @@ interface MenuBarClientProps {
     username: string;
     avatarUrl: string | null;
   };
+  isAdmin: boolean;
   unreadNotificationsCount: number;
   unreadMessagesCount: number;
 }
@@ -56,6 +58,7 @@ function NavItem({ href, icon: Icon, label, active }: NavItemProps) {
 export default function MenuBarClient({
   className,
   user,
+  isAdmin,
   unreadNotificationsCount,
   unreadMessagesCount,
 }: MenuBarClientProps) {
@@ -113,6 +116,9 @@ export default function MenuBarClient({
       <NavItem href="/my-profile" icon={User} label="Profile" active={pathname === "/my-profile"} />
       <NavItem href="/explore" icon={Compass} label="Explore" active={pathname === "/explore"} />
       <NavItem href="/verified-badge" icon={BadgeCheck} label="Get Verified" active={pathname === "/verified-badge"} />
+      {isAdmin && (
+        <NavItem href="/admin" icon={Shield} label="Admin" active={pathname === "/admin"} />
+      )}
       <NavItem href="/settings" icon={Settings} label="Settings" active={pathname === "/settings"} />
     </div>
   );
