@@ -30,15 +30,7 @@ const getUser = cache(async (username: string, loggedInUserId: string) => {
     select: getUserDataSelect(loggedInUserId),
   });
 
-  if (!user) {
-    if (username.toLowerCase() === "admin") {
-      return prisma.user.findUnique({
-        where: { id: loggedInUserId },
-        select: getUserDataSelect(loggedInUserId),
-      });
-    }
-    notFound();
-  }
+  if (!user) notFound();
 
   return user;
 });

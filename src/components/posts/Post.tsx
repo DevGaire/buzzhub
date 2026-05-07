@@ -132,8 +132,6 @@ interface MediaPreviewsProps {
 }
 
 function MediaPreviews({ attachments }: MediaPreviewsProps) {
-  console.log("🖼️ MediaPreviews: Rendering", attachments.length, "attachments");
-  
   return (
     <div
       className={cn(
@@ -155,13 +153,6 @@ interface MediaPreviewProps {
 function MediaPreview({ media }: MediaPreviewProps) {
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
-
-  console.log("🖼️ MediaPreview: Rendering media", {
-    id: media.id,
-    type: media.type,
-    url: media.url,
-    urlValid: media.url.startsWith('http')
-  });
 
   if (media.type === "IMAGE") {
     if (imageError) {
@@ -197,19 +188,12 @@ function MediaPreview({ media }: MediaPreviewProps) {
           width={500}
           height={500}
           className="mx-auto size-fit max-h-[30rem] rounded-2xl"
-          onError={(e) => {
-            console.error("❌ Image failed to load:", media.url, e);
+          onError={() => {
             setImageError(true);
             setImageLoading(false);
           }}
-          onLoad={() => {
-            console.log("✅ Image loaded successfully:", media.url);
-            setImageLoading(false);
-          }}
-          onLoadStart={() => {
-            console.log("🔄 Image loading started:", media.url);
-            setImageLoading(true);
-          }}
+          onLoad={() => setImageLoading(false)}
+          onLoadStart={() => setImageLoading(true)}
         />
       </div>
     );
@@ -249,20 +233,13 @@ function MediaPreview({ media }: MediaPreviewProps) {
           width={500}
           height={500}
           className="mx-auto size-fit max-h-[30rem] rounded-2xl"
-          unoptimized // Important for GIFs to maintain animation
-          onError={(e) => {
-            console.error("❌ GIF failed to load:", media.url, e);
+          unoptimized
+          onError={() => {
             setImageError(true);
             setImageLoading(false);
           }}
-          onLoad={() => {
-            console.log("✅ GIF loaded successfully:", media.url);
-            setImageLoading(false);
-          }}
-          onLoadStart={() => {
-            console.log("🔄 GIF loading started:", media.url);
-            setImageLoading(true);
-          }}
+          onLoad={() => setImageLoading(false)}
+          onLoadStart={() => setImageLoading(true)}
         />
       </div>
     );
@@ -275,15 +252,6 @@ function MediaPreview({ media }: MediaPreviewProps) {
           src={media.url}
           controls
           className="mx-auto size-fit max-h-[30rem] rounded-2xl"
-          onError={(e) => {
-            console.error("❌ Video failed to load:", media.url, e);
-          }}
-          onLoadStart={() => {
-            console.log("🔄 Video loading started:", media.url);
-          }}
-          onCanPlay={() => {
-            console.log("✅ Video can play:", media.url);
-          }}
         />
       </div>
     );
@@ -301,19 +269,7 @@ function MediaPreview({ media }: MediaPreviewProps) {
             <p className="text-xs text-muted-foreground">Click to play</p>
           </div>
         </div>
-        <audio 
-          controls 
-          className="w-full"
-          onError={(e) => {
-            console.error("❌ Audio failed to load:", media.url, e);
-          }}
-          onLoadStart={() => {
-            console.log("🔄 Audio loading started:", media.url);
-          }}
-          onCanPlay={() => {
-            console.log("✅ Audio can play:", media.url);
-          }}
-        >
+        <audio controls className="w-full">
           <source src={media.url} type="audio/mpeg" />
           <source src={media.url} type="audio/wav" />
           <source src={media.url} type="audio/ogg" />

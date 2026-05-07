@@ -1,0 +1,148 @@
+# BuzzHub Roadmap
+
+Single source of truth. Tick boxes as work lands. Phases are ordered: each one assumes the previous is done, but inside a phase items can be done in any order. The last phase is full production deployment.
+
+**How to resume after a context reset:** read this file top-to-bottom, find the first unchecked `[ ]` item, continue from there. Update the "Current focus" line below before you stop.
+
+> **Current focus:** Phase 0 finishing — Vitest test runner + Sentry verification, then Phase 1 (Stripe).
+> **Last commit:** _pending — Phase 0 hygiene batch._
+
+---
+
+## Phase 0 — Hygiene & guardrails
+
+Clean up before piling on features. Small wins, low risk.
+
+- [x] Remove `console.log` debug noise from `src/components/posts/Post.tsx` (MediaPreviews/MediaPreview).
+- [x] Delete the `nul` file at repo root (Windows artifact).
+- [x] Add `.claude/` to `.gitignore` (currently untracked, easy to commit by accident).
+- [x] Remove the `username === "admin"` debug fallback in `src/app/(main)/users/[username]/page.tsx` (now that we have real admin role).
+- [ ] Add a test runner: pick Vitest, wire `npm test`, port one happy-path test (e.g. `validateRequest` mock + a server action).
+- [ ] Verify Sentry is actually capturing errors in production (already installed; check DSN env var).
+- [x] Audit env vars: write a `src/lib/env.ts` that fails fast at boot if any required var is missing.
+- [x] Add `/api/health` route (db ping for uptime checks).
+
+## Phase 1 — Monetization (Stripe)
+
+Make the £5/month verification button real.
+
+- [ ] Add Stripe SDK (`stripe`, `@stripe/stripe-js`).
+- [ ] Schema: add `Subscription` model (id, userId, stripeCustomerId, stripeSubscriptionId, status, currentPeriodEnd, plan, createdAt).
+- [ ] Migration for the new model.
+- [ ] Env vars: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ID_VERIFIED`.
+- [ ] `POST /api/billing/checkout` — creates a Stripe Checkout Session, returns the URL.
+- [ ] Wire `GetVerifiedClient.tsx` Subscribe button to that endpoint.
+- [ ] `POST /api/billing/webhook` — handles `customer.subscription.created/updated/deleted`. On active → set `isVerified=true`. On canceled/past_due → set `isVerified=false` (only if the badge came from a paid sub, not admin grant).
+- [ ] Track grant source: extend schema with `verificationSource` enum (`PAID`, `ADMIN`, `OFFICIAL`) so admin-granted badges aren't auto-revoked when a sub lapses.
+- [ ] Billing portal link in `/settings` → `POST /api/billing/portal` returning a Stripe Customer Portal URL.
+- [ ] Receipt email via Brevo on successful charge (Stripe sends its own; decide if we duplicate).
+- [ ] Test the webhook with `stripe listen --forward-to localhost:3000/api/billing/webhook`.
+
+## Phase 2 — Trust & safety
+
+Reports already have a model but no admin UI; add it.
+
+- [ ] Admin dashboard at `/admin` (gated by `isAdmin`) — list of OPEN reports, sortable by date.
+- [ ] Resolve / reject report actions (POST `/api/admin/reports/[id]`).
+- [ ] User suspension: add `suspendedAt`, `suspendedReason` to User; suspended users can't post/comment.
+- [ ] Soft-delete posts: add `deletedAt` to Post; filter out in feed queries.
+- [ ] Mass-action: bulk hide all posts by a reported user.
+- [ ] Rate limit comments and posts using existing Upstash ratelimit (`@upstash/ratelimit` is already in deps).
+- [ ] 2FA via TOTP for admin accounts (lucky we already have email verification scaffolding).
+
+## Phase 3 — Notifications & engagement loop
+
+Convert lurkers into return visitors.
+
+- [ ] Web Push notifications: service worker + VAPID keys + permission prompt.
+- [ ] Schema: `PushSubscription` model.
+- [ ] Send push on like/follow/comment/mention/DM (server-side fan-out).
+- [ ] Email digest cron at `/api/digests/send` already exists — verify it actually sends and the template renders.
+- [ ] In-app live notifications via Stream Chat events or pusher (already have Stream).
+- [ ] "Mark all read" button on `/notifications`.
+
+## Phase 4 — Discovery & feed quality
+
+- [ ] For-You ranking: time-decayed score = likes\*1 + comments\*2 + bookmarks\*3, scoped to followees + their followees.
+- [ ] Trending hashtags: scheduled job that aggregates the last 24h hashtag counts into a `TrendingTag` table.
+- [ ] `/explore` page that surfaces trending posts + suggested users (currently sparse).
+- [ ] Search relevance: tune Postgres `fullTextSearch` weighting (already enabled in schema preview features).
+- [ ] User recommendations: "people followed by people you follow" query.
+
+## Phase 5 — Creator tooling
+
+- [ ] Drafts: `Post` gets `status` enum (`DRAFT`, `PUBLISHED`); list at `/drafts`.
+- [ ] Scheduled posts: `scheduledFor` timestamp + cron to publish.
+- [ ] Multi-image carousels (Media[] already supports it; UI needs a swiper).
+- [ ] Analytics dashboard at `/analytics`: posts, impressions (need impression tracking), follower growth chart.
+- [ ] Live streaming via Stream Video (SDK already integrated for calls).
+
+## Phase 6 — Performance & scale
+
+- [ ] Audit images: enforce `next/image` everywhere with explicit width/height; add `placeholder="blur"` where feasible.
+- [ ] Add Redis caching for hot reads: trending tags, suggested users, user-by-username lookups.
+- [ ] N+1 audit on `/api/posts/for-you` (use Prisma `include` carefully).
+- [ ] Add DB indexes for any sequential scans seen in `EXPLAIN ANALYZE` of feed queries.
+- [ ] Lighthouse pass: target ≥ 90 on Performance, Accessibility, Best Practices, SEO.
+- [ ] Bundle analyzer (`@next/bundle-analyzer`) — find and split anything over 200kB.
+
+## Phase 7 — Mobile / PWA
+
+- [ ] Web manifest + icons (`public/manifest.webmanifest`).
+- [ ] Service worker for offline shell + cached avatars.
+- [ ] Install prompt component.
+- [ ] Camera capture for stories on mobile.
+- [ ] Pull-to-refresh on the feed.
+- [ ] Bottom sheet for comments (mobile).
+
+## Phase 8 — Compliance & legal
+
+- [ ] `/terms` and `/privacy` pages.
+- [ ] Cookie consent banner (only if we ship analytics).
+- [ ] GDPR data export endpoint (`POST /api/me/export` → emails a JSON dump).
+- [ ] Account deletion with 30-day grace period (`deletedAt` + scheduled hard-delete cron).
+- [ ] Age gate on signup (≥ 13).
+- [ ] DMCA takedown flow (form + admin queue, reuses Report model).
+
+## Phase 9 — UX polish
+
+- [ ] Onboarding wizard: pick interests, follow ≥ 5 suggested accounts, upload avatar.
+- [ ] Skeleton loaders on the feed, profile, comments.
+- [ ] Empty states for every list (no posts, no notifications, no bookmarks, no followers).
+- [ ] Custom 404 / 500 pages.
+- [ ] Subtle animations on like / follow buttons (Framer Motion or CSS).
+- [ ] Confirm-on-destructive-actions modal (delete post, delete comment, block user).
+
+## Phase 10 — Production deployment
+
+The finish line. Don't run this until the previous phases are green.
+
+- [ ] Pin Node version: add `"engines": { "node": ">=20" }` to `package.json`.
+- [ ] Create a production Vercel project (or chosen host); link to this repo.
+- [ ] Add all env vars in the host: DB, Stripe (live keys), Stream, UploadThing, SMTP, Sentry DSN, Google OAuth (production redirect URI).
+- [ ] Production database: use Neon production branch; turn on PITR.
+- [ ] Run `prisma migrate deploy` on production DB.
+- [ ] Run `node scripts/bootstrap-admin.mjs <your-email>` against production DB.
+- [ ] Verify the BuzzHub Community account exists in production.
+- [ ] Custom domain + SSL.
+- [ ] Email deliverability: Brevo SPF / DKIM / DMARC records on the domain.
+- [ ] Stripe live mode: swap test keys for live, register the production webhook URL.
+- [ ] Google OAuth: add production callback URL `https://<domain>/api/auth/callback/google`.
+- [ ] Vercel cron for `/api/clear-uploads`, `/api/clear-stories`, `/api/digests/send`.
+- [ ] Sentry release tagging on deploy (`SENTRY_AUTH_TOKEN`).
+- [ ] Synthetic monitoring: a free uptime check on `/` and `/api/health` (need to add the health route).
+- [ ] Backup verification: confirm Neon backups + a manual `pg_dump` test restore.
+- [ ] Smoke-test in production: signup → post → comment → like → DM → upload → subscribe.
+- [ ] Soft launch: invite ≤ 50 users, watch Sentry + DB.
+- [ ] Public launch.
+
+---
+
+## Resume protocol
+
+When a new conversation starts and someone says "continue the roadmap":
+1. Read this file.
+2. Read `MEMORY.md` and `memory/roadmap_pointer.md`.
+3. Find the first unchecked item under the **Current focus** phase.
+4. If that phase is fully checked, update **Current focus** to the next phase and start there.
+5. After meaningful progress, edit this file to tick boxes and update **Current focus** + **Last commit**.
