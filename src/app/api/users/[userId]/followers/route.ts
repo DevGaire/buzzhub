@@ -1,5 +1,6 @@
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
+import { pushToUser } from "@/lib/push";
 import { FollowerInfo } from "@/lib/types";
 
 export async function GET(
@@ -63,6 +64,7 @@ export async function POST(
       return Response.json({ error: "Cannot follow yourself" }, { status: 400 });
     }
 
+    let didFollow = false;
     await prisma.$transaction(async (tx) => {
       const existing = await tx.follow.findUnique({
         where: {
@@ -85,8 +87,17 @@ export async function POST(
             type: "FOLLOW",
           },
         });
+        didFollow = true;
       }
     });
+
+    if (didFollow) {
+      pushToUser(userId, {
+        title: `${loggedInUser.displayName} started following you`,
+        body: "Tap to view their profile",
+        url: `/users/${loggedInUser.username}`,
+      }).catch(() => {});
+    }
 
     return new Response();
   } catch (error) {

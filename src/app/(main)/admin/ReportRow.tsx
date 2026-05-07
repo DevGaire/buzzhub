@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import kyInstance from "@/lib/ky";
 import { useMutation } from "@tanstack/react-query";
-import { Ban, Check, Loader2, Trash2, User as UserIcon, X } from "lucide-react";
+import { Ban, Check, EyeOff, Loader2, Trash2, User as UserIcon, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -65,6 +65,19 @@ export default function ReportRow({ report, target }: ReportRowProps) {
       toast({ variant: "destructive", description: "Action failed" }),
   });
 
+  const hidePostsMutation = useMutation({
+    mutationFn: () =>
+      kyInstance
+        .post(`/api/admin/users/${target?.ownerUserId}/hide-posts`)
+        .json<{ hidden: number }>(),
+    onSuccess: (data) => {
+      toast({ description: `Hidden ${data.hidden} post${data.hidden === 1 ? "" : "s"}` });
+      router.refresh();
+    },
+    onError: () =>
+      toast({ variant: "destructive", description: "Action failed" }),
+  });
+
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-baseline gap-x-2 text-sm">
@@ -119,19 +132,34 @@ export default function ReportRow({ report, target }: ReportRowProps) {
         </Button>
 
         {target?.ownerUserId && (
-          <Button
-            size="sm"
-            variant={target.suspended ? "outline" : "destructive"}
-            onClick={() => suspendMutation.mutate()}
-            disabled={suspendMutation.isPending}
-          >
-            {suspendMutation.isPending ? (
-              <Loader2 className="mr-1.5 size-3.5 animate-spin" />
-            ) : (
-              <Ban className="mr-1.5 size-3.5" />
-            )}
-            {target.suspended ? "Unsuspend user" : "Suspend user"}
-          </Button>
+          <>
+            <Button
+              size="sm"
+              variant={target.suspended ? "outline" : "destructive"}
+              onClick={() => suspendMutation.mutate()}
+              disabled={suspendMutation.isPending}
+            >
+              {suspendMutation.isPending ? (
+                <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+              ) : (
+                <Ban className="mr-1.5 size-3.5" />
+              )}
+              {target.suspended ? "Unsuspend user" : "Suspend user"}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => hidePostsMutation.mutate()}
+              disabled={hidePostsMutation.isPending}
+            >
+              {hidePostsMutation.isPending ? (
+                <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+              ) : (
+                <EyeOff className="mr-1.5 size-3.5" />
+              )}
+              Hide all posts
+            </Button>
+          </>
         )}
 
         {target?.ownerUsername && (

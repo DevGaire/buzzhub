@@ -1,5 +1,6 @@
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
+import { pushToUser } from "@/lib/push";
 import { limit, rateLimitResponse } from "@/lib/rate-limit";
 import { CommentsPage, getCommentDataInclude } from "@/lib/types";
 import { NextRequest } from "next/server";
@@ -133,6 +134,11 @@ export async function POST(
           type: "COMMENT",
         },
       });
+      pushToUser(post.userId, {
+        title: `${user.displayName} commented on your post`,
+        body: content.trim().slice(0, 80),
+        url: `/posts/${postId}`,
+      }).catch(() => {});
     }
 
     // Create notification for parent comment owner (if it's a reply and not their own)
@@ -151,6 +157,11 @@ export async function POST(
             type: "REPLY",
           },
         });
+        pushToUser(parentComment.userId, {
+          title: `${user.displayName} replied to your comment`,
+          body: content.trim().slice(0, 80),
+          url: `/posts/${postId}`,
+        }).catch(() => {});
       }
     }
 

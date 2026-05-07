@@ -1,5 +1,6 @@
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
+import { pushToUser } from "@/lib/push";
 import { LikeInfo } from "@/lib/types";
 
 export async function GET(
@@ -97,6 +98,14 @@ export async function POST(
           ]
         : []),
     ]);
+
+    if (loggedInUser.id !== post.userId) {
+      pushToUser(post.userId, {
+        title: `${loggedInUser.displayName} liked your post`,
+        body: "Tap to view",
+        url: `/posts/${postId}`,
+      }).catch(() => {});
+    }
 
     return new Response();
   } catch (error) {
