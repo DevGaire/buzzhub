@@ -5,7 +5,7 @@ Single source of truth. Tick boxes as work lands. Phases are ordered: each one a
 **How to resume after a context reset:** read this file top-to-bottom, find the first unchecked `[ ]` item, continue from there. Update the "Current focus" line below before you stop.
 
 > **Current focus:** Phase 10 — production deployment (Node engine pin, Vercel project, env vars, prisma migrate deploy, custom domain, deliverability, monitoring, smoke tests, soft launch).
-> **Last commit:** _pending_ — Phase 9 UX polish (onboarding wizard, 404/500/global-error, EmptyState component, ConfirmDialog, like/follow animations).
+> **Last commit:** `d1b73ebe2` — Phase 9 UX polish (onboarding wizard, 404/500/global-error, EmptyState component, ConfirmDialog, like/follow animations).
 
 ---
 
