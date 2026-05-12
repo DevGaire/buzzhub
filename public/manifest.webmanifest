@@ -1,0 +1,41 @@
+{
+  "name": "BuzzHub",
+  "short_name": "BuzzHub",
+  "description": "The social media app for powernerds.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "categories": ["social", "communication"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "New post",
+      "short_name": "Post",
+      "url": "/?compose=1"
+    },
+    {
+      "name": "Notifications",
+      "url": "/notifications"
+    },
+    {
+      "name": "Drafts",
+      "url": "/drafts"
+    }
+  ]
+}

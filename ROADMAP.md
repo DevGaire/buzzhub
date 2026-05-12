@@ -4,8 +4,8 @@ Single source of truth. Tick boxes as work lands. Phases are ordered: each one a
 
 **How to resume after a context reset:** read this file top-to-bottom, find the first unchecked `[ ]` item, continue from there. Update the "Current focus" line below before you stop.
 
-> **Current focus:** Phase 6 — remaining items: image audit (raw `<img>` in messages module are deliberate for blob URLs / Stream CDN; doc and skip), DB indexes from EXPLAIN ANALYZE, Lighthouse pass, bundle analyzer. /messages is the biggest chunk (518kB) — Stream SDK split is the obvious target.
-> **Last commit:** `cc5efee97` — Phase 6 Redis cache layer (Upstash, no-op fallback) + trending/suggestions cache wiring + for-you parallelization.
+> **Current focus:** Phase 7 — pull-to-refresh on feed, bottom-sheet comments on mobile, camera capture for stories. (Phase 6 image audit / DB indexes / Lighthouse / bundle split skipped per user request.)
+> **Last commit:** _pending_ — Phase 7 PWA scaffolding (manifest, SVG icons, upgraded service worker with offline shell + media SWR, universal SW registration, install prompt).
 
 ---
 
@@ -91,9 +91,9 @@ Convert lurkers into return visitors.
 
 ## Phase 7 — Mobile / PWA
 
-- [ ] Web manifest + icons (`public/manifest.webmanifest`).
-- [ ] Service worker for offline shell + cached avatars.
-- [ ] Install prompt component.
+- [x] Web manifest + icons: `public/manifest.webmanifest` with standalone display, theme/background colors, app shortcuts (New post / Notifications / Drafts). SVG `icon.svg` (any) and `icon-maskable.svg` (with safe-zone inset) cover all modern PWA installers. `viewport.themeColor` set in root layout.
+- [x] Service worker for offline shell + cached avatars: `public/sw.js` upgraded — app-shell cache (`/offline`, manifest, icons), stale-while-revalidate for upload-CDN media (utfs.io + *.ufs.sh), HTML navigations are network-first with `/offline` fallback, API/auth paths bypass the SW entirely (never cached, so no per-user data leaks). Versioned cache keys so the SW cleans up old buckets on activation. SW is registered universally by a new `<PWAInit />` at the root (used to only register on push opt-in).
+- [x] Install prompt component: `<InstallPWA />` captures `beforeinstallprompt` via PWAInit, then shows a dismissable bottom-right card. Hidden if already running standalone, hidden for 14 days after dismissal (localStorage).
 - [ ] Camera capture for stories on mobile.
 - [ ] Pull-to-refresh on the feed.
 - [ ] Bottom sheet for comments (mobile).

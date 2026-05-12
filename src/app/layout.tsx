@@ -1,5 +1,7 @@
 import { Toaster } from "@/components/ui/toaster";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import InstallPWA from "@/components/InstallPWA";
+import PWAInit from "./PWAInit";
 import { cn } from "@/lib/utils";
 import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
 import type { Metadata } from "next";
@@ -29,6 +31,24 @@ export const metadata: Metadata = {
     default: "buzzhub",
   },
   description: "The social media app for powernerds",
+  manifest: "/manifest.webmanifest",
+  applicationName: "BuzzHub",
+  appleWebApp: {
+    capable: true,
+    title: "BuzzHub",
+    statusBarStyle: "black-translucent",
+  },
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
+};
+
+export const viewport = {
+  themeColor: "#0a0a0a",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover" as const,
 };
 
 export default function RootLayout({
@@ -52,6 +72,8 @@ export default function RootLayout({
             </ThemeProvider>
           </ReactQueryProvider>
         </ErrorBoundary>
+        <PWAInit />
+        <InstallPWA />
         <Toaster />
       </body>
     </html>

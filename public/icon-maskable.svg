@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="BuzzHub">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+  </defs>
+  <!-- Full-bleed background for maskable safe-zone. Logo lives in the inner 80% so OS masks don't clip it. -->
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <g transform="translate(96 96) scale(0.625)">
+    <path d="M150 168h148c47 0 78 23 78 64 0 27-15 47-37 56 28 8 47 30 47 62 0 44-33 70-86 70H150zm56 46v66h78c25 0 39-12 39-33s-14-33-39-33zm0 110v74h84c28 0 44-13 44-37s-16-37-44-37z" fill="#fff"/>
+  </g>
+</svg>
