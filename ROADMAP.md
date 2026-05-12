@@ -5,7 +5,7 @@ Single source of truth. Tick boxes as work lands. Phases are ordered: each one a
 **How to resume after a context reset:** read this file top-to-bottom, find the first unchecked `[ ]` item, continue from there. Update the "Current focus" line below before you stop.
 
 > **Current focus:** Phase 10 — repo-side launch prep is done (Node pin, Sentry wired, smoke script, Phase 0 Sentry checkbox closed). What's left is the operator checklist in Phase 10 below: Vercel project, env vars, `prisma migrate deploy`, custom domain, deliverability records, Stripe live mode swap, Google OAuth prod callback, uptime monitor, backup verification, smoke pass, soft launch.
-> **Last commit:** _pending_ — Phase 10 repo-side prep (Node engine pin, Sentry instrumentation files + `withSentryConfig` wrap, `scripts/smoke.mjs`).
+> **Last commit:** `bc8b36eed` — Phase 10 repo-side prep (Node engine pin, Sentry instrumentation files + `withSentryConfig` wrap, `scripts/smoke.mjs`).
 
 ---
 
