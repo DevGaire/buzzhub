@@ -9,7 +9,7 @@ import Placeholder from "@tiptap/extension-placeholder";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useDropzone } from "@uploadthing/react";
-import { BarChart2, ImageIcon, Loader2, Plus, Trash2, X } from "lucide-react";
+import { BarChart2, CalendarClock, ImageIcon, Loader2, Plus, Trash2, X } from "lucide-react";
 import Image from "next/image";
 import { ClipboardEvent, useEffect, useRef, useState } from "react";
 import { useSubmitPostMutation } from "./mutations";
@@ -27,6 +27,8 @@ export default function PostEditor() {
   const [feeling, setFeeling] = useState<{ type: 'feeling' | 'activity'; emoji: string; label: string } | null>(null);
   const [showFeelingPicker, setShowFeelingPicker] = useState(false);
   const [poll, setPoll] = useState<{ options: string[]; expiresInHours: number } | null>(null);
+  const [scheduleAt, setScheduleAt] = useState<string>(""); // "YYYY-MM-DDTHH:mm" local
+  const [showSchedule, setShowSchedule] = useState(false);
 
   const {
     startUpload,
@@ -80,10 +82,20 @@ export default function PostEditor() {
     startUpload(files);
   };
 
-  function onSubmit(status: "published" | "draft" = "published") {
+  function onSubmit(status: "published" | "draft" | "scheduled" = "published") {
     const contentToSend = feeling
       ? `${input}${input ? '\n\n' : ''}${feeling.type === 'feeling' ? 'Feeling' : 'Activity'}: ${feeling.emoji} ${feeling.label}`
       : input;
+    let scheduledForIso: string | undefined;
+    if (status === "scheduled") {
+      if (!scheduleAt) return;
+      // datetime-local has no zone — interpret as the user's local time.
+      const at = new Date(scheduleAt);
+      if (isNaN(at.getTime()) || at.getTime() - Date.now() < 60_000) {
+        return;
+      }
+      scheduledForIso = at.toISOString();
+    }
     mutation.mutate(
       {
         content: contentToSend,
@@ -94,6 +106,7 @@ export default function PostEditor() {
           ? { options: poll.options.filter((o) => o.trim()), expiresInHours: poll.expiresInHours }
           : undefined,
         status,
+        scheduledFor: scheduledForIso,
       },
       {
         onSuccess: () => {
@@ -102,6 +115,8 @@ export default function PostEditor() {
           setFeeling(null);
           setShowFeelingPicker(false);
           setPoll(null);
+          setScheduleAt("");
+          setShowSchedule(false);
         },
       },
     );
@@ -279,6 +294,29 @@ export default function PostEditor() {
               </select>
             </div>
           )}
+          {showSchedule && (
+            <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border bg-muted/30 p-3 text-xs">
+              <CalendarClock className="size-4 text-primary" />
+              <label className="font-medium">Publish at</label>
+              <input
+                type="datetime-local"
+                value={scheduleAt}
+                min={new Date(Date.now() + 60_000).toISOString().slice(0, 16)}
+                onChange={(e) => setScheduleAt(e.target.value)}
+                className="rounded-md border bg-background px-2 py-1"
+              />
+              <span className="text-muted-foreground">{Intl.DateTimeFormat().resolvedOptions().timeZone}</span>
+              {scheduleAt && (
+                <button
+                  type="button"
+                  className="ml-auto text-muted-foreground hover:text-foreground"
+                  onClick={() => setScheduleAt("")}
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          )}
           <div className="mt-3 flex items-center justify-between border-t pt-3">
             <div className="flex items-center gap-2">
               {isUploading && (
@@ -301,6 +339,16 @@ export default function PostEditor() {
               >
                 <BarChart2 size={18} />
                 <span className="text-xs">Poll</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn("h-8 gap-2", showSchedule || scheduleAt ? "text-primary" : "text-primary")}
+                onClick={() => setShowSchedule((s) => !s)}
+                title="Schedule for later"
+              >
+                <CalendarClock size={18} />
+                <span className="text-xs">Schedule</span>
               </Button>
               <div className="relative">
                 <Button
@@ -365,18 +413,33 @@ export default function PostEditor() {
               >
                 Save as draft
               </Button>
-              <LoadingButton
-                onClick={() => onSubmit("published")}
-                loading={mutation.isPending}
-                disabled={
-                  !input.trim() ||
-                  isUploading ||
-                  (!!poll && poll.options.filter((o) => o.trim()).length < 2)
-                }
-                className="min-w-20"
-              >
-                Post
-              </LoadingButton>
+              {scheduleAt ? (
+                <LoadingButton
+                  onClick={() => onSubmit("scheduled")}
+                  loading={mutation.isPending}
+                  disabled={
+                    !input.trim() ||
+                    isUploading ||
+                    new Date(scheduleAt).getTime() - Date.now() < 60_000
+                  }
+                  className="min-w-20"
+                >
+                  Schedule
+                </LoadingButton>
+              ) : (
+                <LoadingButton
+                  onClick={() => onSubmit("published")}
+                  loading={mutation.isPending}
+                  disabled={
+                    !input.trim() ||
+                    isUploading ||
+                    (!!poll && poll.options.filter((o) => o.trim()).length < 2)
+                  }
+                  className="min-w-20"
+                >
+                  Post
+                </LoadingButton>
+              )}
             </div>
           </div>
         </div>

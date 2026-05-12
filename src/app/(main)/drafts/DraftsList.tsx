@@ -14,7 +14,7 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { CalendarClock, Loader2 } from "lucide-react";
 import { useState } from "react";
 
 const QUERY_KEY = ["drafts"];
@@ -39,7 +39,7 @@ export default function DraftsList() {
     getNextPageParam: (last) => last.nextCursor,
   });
 
-  const drafts = data?.pages.flatMap((p) => p.posts) || [];
+  const items = data?.pages.flatMap((p) => p.posts) || [];
 
   if (status === "pending") return <PostsLoadingSkeleton />;
   if (status === "error") {
@@ -49,10 +49,10 @@ export default function DraftsList() {
       </p>
     );
   }
-  if (!drafts.length) {
+  if (!items.length) {
     return (
       <p className="rounded-2xl bg-card p-8 text-center text-muted-foreground">
-        No drafts yet. Use &quot;Save as draft&quot; in the composer to park a post here.
+        Nothing parked here. Use &quot;Save as draft&quot; or &quot;Schedule&quot; in the composer to send a post here first.
       </p>
     );
   }
@@ -62,7 +62,7 @@ export default function DraftsList() {
       className="space-y-3"
       onBottomReached={() => hasNextPage && !isFetching && fetchNextPage()}
     >
-      {drafts.map((d) => (
+      {items.map((d) => (
         <DraftRow key={d.id} draft={d} />
       ))}
       {isFetchingNextPage && <Loader2 className="mx-auto my-3 animate-spin" />}
@@ -71,10 +71,17 @@ export default function DraftsList() {
 }
 
 function DraftRow({ draft }: { draft: PostData }) {
+  const isScheduled = draft.status === "SCHEDULED";
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [content, setContent] = useState(draft.content);
+  const [rescheduling, setRescheduling] = useState(false);
+  const [scheduleAt, setScheduleAt] = useState<string>(
+    draft.scheduledFor
+      ? toLocalDatetimeInput(new Date(draft.scheduledFor))
+      : "",
+  );
 
   const removeFromCache = () => {
     queryClient.setQueryData<InfiniteData<PostsPage, string | null>>(
@@ -92,6 +99,22 @@ function DraftRow({ draft }: { draft: PostData }) {
     );
   };
 
+  const replaceInCache = (next: PostData) => {
+    queryClient.setQueryData<InfiniteData<PostsPage, string | null>>(
+      QUERY_KEY,
+      (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((p) => ({
+            ...p,
+            posts: p.posts.map((x) => (x.id === draft.id ? next : x)),
+          })),
+        };
+      },
+    );
+  };
+
   const publish = useMutation({
     mutationFn: () =>
       kyInstance.post(`/api/drafts/${draft.id}/publish`).json<PostData>(),
@@ -102,7 +125,7 @@ function DraftRow({ draft }: { draft: PostData }) {
         predicate: (q) =>
           q.queryKey.includes("for-you") || q.queryKey.includes("user-posts"),
       });
-      toast({ description: "Draft published." });
+      toast({ description: "Published." });
     },
     onError: () => {
       toast({ variant: "destructive", description: "Couldn't publish." });
@@ -115,24 +138,41 @@ function DraftRow({ draft }: { draft: PostData }) {
         .patch(`/api/drafts/${draft.id}`, { json: { content: next } })
         .json<PostData>(),
     onSuccess: (updated) => {
-      queryClient.setQueryData<InfiniteData<PostsPage, string | null>>(
-        QUERY_KEY,
-        (old) => {
-          if (!old) return old;
-          return {
-            ...old,
-            pages: old.pages.map((p) => ({
-              ...p,
-              posts: p.posts.map((x) => (x.id === draft.id ? updated : x)),
-            })),
-          };
-        },
-      );
+      replaceInCache(updated);
       setEditing(false);
-      toast({ description: "Draft saved." });
+      toast({ description: "Saved." });
     },
     onError: () => {
       toast({ variant: "destructive", description: "Couldn't save." });
+    },
+  });
+
+  const reschedule = useMutation({
+    mutationFn: (iso: string) =>
+      kyInstance
+        .patch(`/api/drafts/${draft.id}`, { json: { scheduledFor: iso } })
+        .json<PostData>(),
+    onSuccess: (updated) => {
+      replaceInCache(updated);
+      setRescheduling(false);
+      toast({ description: "Schedule updated." });
+    },
+    onError: () => {
+      toast({ variant: "destructive", description: "Couldn't reschedule." });
+    },
+  });
+
+  const cancelSchedule = useMutation({
+    mutationFn: () =>
+      kyInstance
+        .patch(`/api/drafts/${draft.id}`, { json: { cancelSchedule: true } })
+        .json<PostData>(),
+    onSuccess: (updated) => {
+      replaceInCache(updated);
+      toast({ description: "Moved back to drafts." });
+    },
+    onError: () => {
+      toast({ variant: "destructive", description: "Couldn't cancel schedule." });
     },
   });
 
@@ -140,7 +180,7 @@ function DraftRow({ draft }: { draft: PostData }) {
     mutationFn: () => kyInstance.delete(`/api/drafts/${draft.id}`),
     onSuccess: () => {
       removeFromCache();
-      toast({ description: "Draft deleted." });
+      toast({ description: "Deleted." });
     },
     onError: () => {
       toast({ variant: "destructive", description: "Couldn't delete." });
@@ -149,11 +189,18 @@ function DraftRow({ draft }: { draft: PostData }) {
 
   return (
     <div className="rounded-2xl bg-card p-4 shadow-sm space-y-3">
-      <div className="flex items-start justify-between gap-3 text-xs text-muted-foreground">
+      <div className="flex flex-wrap items-start justify-between gap-3 text-xs text-muted-foreground">
         <span>Last edited {formatRelativeDate(draft.updatedAt)}</span>
-        <span className="rounded-full bg-muted px-2 py-0.5 uppercase tracking-wide">
-          Draft
-        </span>
+        {isScheduled ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 uppercase tracking-wide text-primary">
+            <CalendarClock className="size-3" />
+            Scheduled · {draft.scheduledFor ? new Date(draft.scheduledFor).toLocaleString() : ""}
+          </span>
+        ) : (
+          <span className="rounded-full bg-muted px-2 py-0.5 uppercase tracking-wide">
+            Draft
+          </span>
+        )}
       </div>
       {editing ? (
         <textarea
@@ -174,6 +221,50 @@ function DraftRow({ draft }: { draft: PostData }) {
           {draft.attachments.length} attachment
           {draft.attachments.length === 1 ? "" : "s"}
         </p>
+      )}
+      {rescheduling && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-muted/30 p-3 text-xs">
+          <CalendarClock className="size-4 text-primary" />
+          <label className="font-medium">Publish at</label>
+          <input
+            type="datetime-local"
+            value={scheduleAt}
+            min={toLocalDatetimeInput(new Date(Date.now() + 60_000))}
+            onChange={(e) => setScheduleAt(e.target.value)}
+            className="rounded-md border bg-background px-2 py-1"
+          />
+          <span className="text-muted-foreground">
+            {Intl.DateTimeFormat().resolvedOptions().timeZone}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-auto h-7"
+            onClick={() => {
+              setRescheduling(false);
+              setScheduleAt(
+                draft.scheduledFor
+                  ? toLocalDatetimeInput(new Date(draft.scheduledFor))
+                  : "",
+              );
+            }}
+          >
+            Cancel
+          </Button>
+          <LoadingButton
+            loading={reschedule.isPending}
+            disabled={
+              !scheduleAt ||
+              new Date(scheduleAt).getTime() - Date.now() < 60_000
+            }
+            onClick={() =>
+              reschedule.mutate(new Date(scheduleAt).toISOString())
+            }
+            className="h-7"
+          >
+            Save schedule
+          </LoadingButton>
+        </div>
       )}
       <div className="flex flex-wrap items-center justify-end gap-2">
         {editing ? (
@@ -203,11 +294,7 @@ function DraftRow({ draft }: { draft: PostData }) {
               variant="ghost"
               size="sm"
               onClick={() => {
-                if (
-                  confirm(
-                    "Delete this draft? This can't be undone.",
-                  )
-                ) {
+                if (confirm("Delete this post? This can't be undone.")) {
                   remove.mutate();
                 }
               }}
@@ -219,17 +306,52 @@ function DraftRow({ draft }: { draft: PostData }) {
             <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
               Edit
             </Button>
+            {isScheduled ? (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => cancelSchedule.mutate()}
+                  disabled={cancelSchedule.isPending}
+                >
+                  Move to drafts
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setRescheduling((s) => !s)}
+                >
+                  {rescheduling ? "Close" : "Reschedule"}
+                </Button>
+              </>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setRescheduling((s) => !s)}
+              >
+                {rescheduling ? "Close" : "Schedule"}
+              </Button>
+            )}
             <LoadingButton
               loading={publish.isPending}
               onClick={() => publish.mutate()}
               disabled={!draft.content.trim()}
               className="h-8"
             >
-              Publish
+              Publish now
             </LoadingButton>
           </>
         )}
       </div>
     </div>
+  );
+}
+
+function toLocalDatetimeInput(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    `T${pad(d.getHours())}:${pad(d.getMinutes())}`
   );
 }

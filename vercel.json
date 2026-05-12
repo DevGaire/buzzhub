@@ -3,6 +3,10 @@
     {
       "path": "/api/clear-uploads",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/posts/publish-scheduled",
+      "schedule": "* * * * *"
     }
   ]
 }

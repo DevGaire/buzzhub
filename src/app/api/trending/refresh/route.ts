@@ -22,6 +22,7 @@ export async function GET(req: Request) {
     WHERE "createdAt" >= NOW() - INTERVAL '24 hours'
       AND archived = false
       AND "deletedAt" IS NULL
+      AND status = 'PUBLISHED'
     GROUP BY hashtag
     ORDER BY count DESC, hashtag ASC
     LIMIT 50

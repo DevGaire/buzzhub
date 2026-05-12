@@ -7,13 +7,20 @@ import { limit } from "@/lib/rate-limit";
 import { getPostDataInclude } from "@/lib/types";
 import { createPostSchema } from "@/lib/validation";
 
+// A scheduled post must land at least this far in the future, and no more
+// than this far out. Keeps the cron loop from chasing posts that are about
+// to fire and prevents someone parking a post in 2099.
+const MIN_SCHEDULE_LEAD_MS = 60_000; // 1 minute
+const MAX_SCHEDULE_HORIZON_MS = 90 * 24 * 3600_000; // 90 days
+
 export async function submitPost(input: {
   content: string;
   mediaIds: string[];
   visibility?: "public" | "followers" | "only_me";
   poll?: { options: string[]; expiresInHours?: number };
   quotedPostId?: string;
-  status?: "draft" | "published";
+  status?: "draft" | "published" | "scheduled";
+  scheduledFor?: string;
 }) {
   const { user } = await validateRequest();
   if (!user) throw new Error("Unauthorized");
@@ -26,11 +33,28 @@ export async function submitPost(input: {
     throw new Error("Your account is suspended.");
   }
 
-  const { content, mediaIds, visibility, status } = createPostSchema.parse(input as any);
-  const isDraft = status === "draft";
+  const { content, mediaIds, visibility, status, scheduledFor } =
+    createPostSchema.parse(input as any);
 
-  // Rate-limit only real publishes — drafts shouldn't burn the budget.
-  if (!isDraft) {
+  let resolvedStatus: "DRAFT" | "SCHEDULED" | "PUBLISHED" =
+    status === "draft" ? "DRAFT" : status === "scheduled" ? "SCHEDULED" : "PUBLISHED";
+  let scheduledAt: Date | null = null;
+
+  if (resolvedStatus === "SCHEDULED") {
+    if (!scheduledFor) throw new Error("Pick a time to schedule the post.");
+    scheduledAt = new Date(scheduledFor);
+    const lead = scheduledAt.getTime() - Date.now();
+    if (Number.isNaN(scheduledAt.getTime()) || lead < MIN_SCHEDULE_LEAD_MS) {
+      throw new Error("Schedule must be at least 1 minute in the future.");
+    }
+    if (lead > MAX_SCHEDULE_HORIZON_MS) {
+      throw new Error("Schedule must be within 90 days.");
+    }
+  }
+
+  // Only real publishes count against the per-minute budget. Drafts and
+  // scheduled posts publish on their own clock and don't need the same guard.
+  if (resolvedStatus === "PUBLISHED") {
     const rl = limit(`post:${user.id}`, 10, 60_000);
     if (!rl.ok) {
       throw new Error("Slow down — you're posting too quickly.");
@@ -44,7 +68,8 @@ export async function submitPost(input: {
     data: {
       content,
       userId: user.id,
-      status: isDraft ? "DRAFT" : "PUBLISHED",
+      status: resolvedStatus,
+      scheduledFor: scheduledAt,
       visibility: mappedVisibility as any,
       quotedPostId: input.quotedPostId ?? null,
       attachments: { connect: mediaIds.map((id) => ({ id })) },
@@ -68,14 +93,14 @@ export async function submitPost(input: {
     include: getPostDataInclude(user.id),
   });
 
-  if (!isDraft) {
+  if (resolvedStatus === "PUBLISHED") {
     await sendMentionNotifications(newPost.id, content, user.id, user.displayName);
   }
 
   return newPost;
 }
 
-async function sendMentionNotifications(
+export async function sendMentionNotifications(
   postId: string,
   content: string,
   authorId: string,
@@ -112,8 +137,9 @@ async function sendMentionNotifications(
 }
 
 /**
- * Promote a draft to PUBLISHED. Refreshes createdAt so it appears at the top
- * of feeds (drafts that sat for a week shouldn't bury themselves on publish).
+ * Promote a draft or scheduled post to PUBLISHED immediately. Refreshes
+ * createdAt so it lands at the top of feeds (a draft that sat for a week
+ * shouldn't bury itself when published).
  */
 export async function publishDraft(postId: string) {
   const { user } = await validateRequest();
@@ -137,11 +163,13 @@ export async function publishDraft(postId: string) {
     select: { id: true, userId: true, status: true, content: true },
   });
   if (!draft || draft.userId !== user.id) throw new Error("Not found");
-  if (draft.status !== "DRAFT") throw new Error("Already published");
+  if (draft.status !== "DRAFT" && draft.status !== "SCHEDULED") {
+    throw new Error("Already published");
+  }
 
   const published = await prisma.post.update({
     where: { id: postId },
-    data: { status: "PUBLISHED", createdAt: new Date() },
+    data: { status: "PUBLISHED", scheduledFor: null, createdAt: new Date() },
     include: getPostDataInclude(user.id),
   });
 

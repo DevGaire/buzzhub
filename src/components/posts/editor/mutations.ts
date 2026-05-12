@@ -19,12 +19,15 @@ export function useSubmitPostMutation() {
   const mutation = useMutation({
     mutationFn: submitPost,
     onSuccess: async (newPost, variables) => {
-      const isDraft = variables.status === "draft";
+      const status = variables.status ?? "published";
 
-      if (isDraft) {
-        // Drafts don't go in any public feed cache. Just refresh the drafts list.
+      if (status === "draft" || status === "scheduled") {
+        // Drafts and scheduled posts don't go in any public feed cache —
+        // just refresh the drafts list (the /drafts page surfaces both).
         await queryClient.invalidateQueries({ queryKey: ["drafts"] });
-        toast({ description: "Draft saved" });
+        toast({
+          description: status === "scheduled" ? "Scheduled" : "Draft saved",
+        });
         return;
       }
 

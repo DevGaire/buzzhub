@@ -4,8 +4,8 @@ Single source of truth. Tick boxes as work lands. Phases are ordered: each one a
 
 **How to resume after a context reset:** read this file top-to-bottom, find the first unchecked `[ ]` item, continue from there. Update the "Current focus" line below before you stop.
 
-> **Current focus:** Phase 5 — scheduled posts next (`scheduledFor` + publish cron), then multi-image carousel UI, then analytics dashboard.
-> **Last commit:** `a96994d81` — Phase 5 drafts (PostStatus enum, `/drafts` page, "Save as draft" composer button, drafts API + publish endpoint, single-post and feed guards so drafts stay author-only).
+> **Current focus:** Phase 5 — multi-image carousel UI next (Media[] already on Post; needs a swiper component on the feed), then analytics dashboard.
+> **Last commit:** _pending_ — Phase 5 scheduled posts (SCHEDULED status + `scheduledFor`, composer Schedule UI, `/drafts` page handles both drafts and scheduled, publish-scheduled cron + Vercel entry).
 
 ---
 
@@ -75,7 +75,7 @@ Convert lurkers into return visitors.
 ## Phase 5 — Creator tooling
 
 - [x] Drafts: `Post.status` enum (`DRAFT` / `PUBLISHED`, default `PUBLISHED`) + index on `(userId, status)`. `/drafts` page lists, edits inline, deletes, or publishes. Composer has a "Save as draft" button next to Post; drafts skip rate-limit and mention notifications. On publish, `createdAt` is refreshed and mention notifications fire. `visiblePostFilter` excludes drafts; `/posts/[id]` page + GET API return 404 to non-authors; following / digests queries also filter `status: PUBLISHED`. Migration: `prisma/migrations/20260512000000_add_post_drafts`.
-- [ ] Scheduled posts: `scheduledFor` timestamp + cron to publish.
+- [x] Scheduled posts: `Post.scheduledFor` + `SCHEDULED` enum value. Composer has a "Schedule" toggle with `datetime-local` picker; `/drafts` page lists drafts and scheduled together, with Reschedule / Move-to-drafts / Publish-now controls. Cron at `GET /api/posts/publish-scheduled` (CORN_SECRET-gated, batch of 100) flips due scheduled posts to PUBLISHED, refreshes `createdAt`, and fires mention notifications. Skips authors who were suspended after scheduling. Trending refresh also now filters to `status='PUBLISHED'`. Migration `prisma/migrations/20260512100000_add_scheduled_posts` adds the enum value, column, and `(status, scheduledFor)` index. Vercel cron entry added (`* * * * *`); operator must also set `CORN_SECRET` in env so Vercel's Bearer token matches.
 - [ ] Multi-image carousels (Media[] already supports it; UI needs a swiper).
 - [ ] Analytics dashboard at `/analytics`: posts, impressions (need impression tracking), follower growth chart.
 - [ ] Live streaming via Stream Video (SDK already integrated for calls).
