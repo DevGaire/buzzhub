@@ -4,8 +4,8 @@ Single source of truth. Tick boxes as work lands. Phases are ordered: each one a
 
 **How to resume after a context reset:** read this file top-to-bottom, find the first unchecked `[ ]` item, continue from there. Update the "Current focus" line below before you stop.
 
-> **Current focus:** Phase 5 wrap (live streaming via Stream Video is the only remaining item — lower priority, deferrable). Then Phase 6 — performance & scale (image audit, Redis caching, N+1, indexes, Lighthouse, bundle).
-> **Last commit:** `21f5299a5` — Phase 5 analytics (PostImpression + Follow.createdAt, beacon endpoint, `/analytics` dashboard with stat cards, 30-day sparklines, top posts).
+> **Current focus:** Phase 6 — remaining items: image audit (raw `<img>` in messages module are deliberate for blob URLs / Stream CDN; doc and skip), DB indexes from EXPLAIN ANALYZE, Lighthouse pass, bundle analyzer. /messages is the biggest chunk (518kB) — Stream SDK split is the obvious target.
+> **Last commit:** _pending_ — Phase 6 Redis cache layer (Upstash, no-op fallback) + trending/suggestions cache wiring + for-you parallelization.
 
 ---
 
@@ -83,8 +83,8 @@ Convert lurkers into return visitors.
 ## Phase 6 — Performance & scale
 
 - [ ] Audit images: enforce `next/image` everywhere with explicit width/height; add `placeholder="blur"` where feasible.
-- [ ] Add Redis caching for hot reads: trending tags, suggested users, user-by-username lookups.
-- [ ] N+1 audit on `/api/posts/for-you` (use Prisma `include` carefully).
+- [x] Add Redis caching for hot reads: trending tags, suggested users, user-by-username lookups. New `src/lib/cache.ts` wraps `@upstash/redis` (already installed) — `cached<T>(key, ttl, loader)` cache-aside, plus `cacheGet/Set/Del`. If `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` aren't set, every op is a no-op so the app keeps working. Trending tags cached 60s and invalidated by `/api/trending/refresh`; suggestions cache the *candidate ID list* per user for 60s while user-card hydration still happens fresh so newly-followed accounts disappear immediately. Env schema updated to treat both Upstash vars as optional. User-by-username cache key is staged in `cacheKeys` but not yet wired (low-priority, profile pages aren't a hot-spot yet).
+- [x] N+1 audit on `/api/posts/for-you`: the three follow/block lookups are now parallel (Promise.all → 1 round-trip instead of 3). No real N+1 — the route uses Prisma `include` once and operates on the resulting array in JS.
 - [ ] Add DB indexes for any sequential scans seen in `EXPLAIN ANALYZE` of feed queries.
 - [ ] Lighthouse pass: target ≥ 90 on Performance, Accessibility, Best Practices, SEO.
 - [ ] Bundle analyzer (`@next/bundle-analyzer`) — find and split anything over 200kB.

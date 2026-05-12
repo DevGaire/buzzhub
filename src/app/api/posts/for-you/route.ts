@@ -12,28 +12,28 @@ export async function GET(req: NextRequest) {
     const { user } = await validateRequest();
     if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-    // Get users the current user follows for engagement boost
-    const following = await prisma.follow.findMany({
-      where: { followerId: user.id },
-      select: { followingId: true },
-    });
+    // Follow graph + block sets — fire in parallel; they're independent.
+    const [following, blockedByUsers, blockedUsers] = await Promise.all([
+      prisma.follow.findMany({
+        where: { followerId: user.id },
+        select: { followingId: true },
+      }),
+      prisma.block.findMany({
+        where: { blockedId: user.id },
+        select: { blockerId: true },
+      }),
+      prisma.block.findMany({
+        where: { blockerId: user.id },
+        select: { blockedId: true },
+      }),
+    ]);
     const followingIds = following.map((f) => f.followingId);
-
-    // Get IDs of users who have blocked the logged-in user
-    const blockedByUsers = await prisma.block.findMany({
-      where: { blockedId: user.id },
-      select: { blockerId: true },
-    });
-    const blockedByIds = blockedByUsers.map((b) => b.blockerId);
-
-    // Get IDs of users the logged-in user has blocked
-    const blockedUsers = await prisma.block.findMany({
-      where: { blockerId: user.id },
-      select: { blockedId: true },
-    });
-    const blockedIds = blockedUsers.map((b) => b.blockedId);
-
-    const hiddenIds = [...new Set([...blockedByIds, ...blockedIds])];
+    const hiddenIds = [
+      ...new Set([
+        ...blockedByUsers.map((b) => b.blockerId),
+        ...blockedUsers.map((b) => b.blockedId),
+      ]),
+    ];
 
     if (cursor) {
       // Cursor-based page: simple recent order

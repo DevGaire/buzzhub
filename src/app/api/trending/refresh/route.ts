@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import { cacheDel, cacheKeys } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +45,10 @@ export async function GET(req: Request) {
         ]
       : []),
   ]);
+
+  // The /explore page caches the trending list for 60s; bust it now so the
+  // next viewer sees the fresh aggregate immediately.
+  await cacheDel(cacheKeys.trendingTags);
 
   return Response.json({ refreshed: rows.length, at: now.toISOString() });
 }

@@ -16,6 +16,10 @@ const schema = z.object({
   SMTP_USER: z.string().min(1),
   SMTP_PASS: z.string().min(1),
   MAIL_FROM: z.string().min(1),
+  // Optional: Upstash Redis powers the optional cache layer (trending tags,
+  // suggestions). Missing → cache helper no-ops and we fall through to DB.
+  UPSTASH_REDIS_REST_URL: z.string().url().optional(),
+  UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
 });
 
 export type Env = z.infer<typeof schema>;
