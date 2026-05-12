@@ -5,7 +5,7 @@ Single source of truth. Tick boxes as work lands. Phases are ordered: each one a
 **How to resume after a context reset:** read this file top-to-bottom, find the first unchecked `[ ]` item, continue from there. Update the "Current focus" line below before you stop.
 
 > **Current focus:** Phase 5 — creator tooling (drafts, scheduled posts, multi-image carousels, analytics). Vercel cron entry for `/api/trending/refresh` is deferred to Phase 10 alongside the other cron URLs.
-> **Last commit:** _pending_ — Phase 4 search weighting (websearch_to_tsquery + ts_rank_cd with username/displayName/content setweight, engagement and recency boost, Top tab now sorts by relevance).
+> **Last commit:** `a50801ce1` — Phase 4 search weighting (websearch_to_tsquery + ts_rank_cd with username/displayName/content setweight, engagement and recency boost, Top tab now sorts by relevance).
 
 ---
 
