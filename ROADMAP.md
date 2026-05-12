@@ -4,8 +4,8 @@ Single source of truth. Tick boxes as work lands. Phases are ordered: each one a
 
 **How to resume after a context reset:** read this file top-to-bottom, find the first unchecked `[ ]` item, continue from there. Update the "Current focus" line below before you stop.
 
-> **Current focus:** Phase 4 wrap (search weighting, optional vercel cron entry for /api/trending/refresh), then Phase 5 — creator tooling (drafts, scheduled posts, multi-image carousels, analytics).
-> **Last commit:** `dd7306dd7` — Phase 3 close + Phase 4 trending/suggestions/for-you tuning.
+> **Current focus:** Phase 5 — creator tooling (drafts, scheduled posts, multi-image carousels, analytics). Vercel cron entry for `/api/trending/refresh` is deferred to Phase 10 alongside the other cron URLs.
+> **Last commit:** _pending_ — Phase 4 search weighting (websearch_to_tsquery + ts_rank_cd with username/displayName/content setweight, engagement and recency boost, Top tab now sorts by relevance).
 
 ---
 
@@ -69,7 +69,7 @@ Convert lurkers into return visitors.
 - [x] For-You ranking: likes×1 + comments×2 + bookmarks×3 + follow boost×10 / friends-of-friends×4 + recency decay over 72h, with a per-author cap of 2 in the top page for diversity.
 - [x] Trending hashtags: `TrendingTag` table + `GET /api/trending/refresh` cron (CORN_SECRET-gated, 24h window). Explore reads cached rows, falls back to live aggregation.
 - [x] `/explore` page now reads from `trending_tags` first.
-- [ ] Search relevance: tune Postgres `fullTextSearch` weighting (already enabled in schema preview features).
+- [x] Search relevance: `/api/search?sort=top` now uses raw SQL with `websearch_to_tsquery` + `ts_rank_cd` over a setweight tsvector (`username='A'`, `displayName='B'`, `content='C'`), plus a log-scaled like/comment/bookmark boost and a 72h-style linear recency penalty. `sort=new` keeps chronological cursor; `sort=top` uses page-offset cursor. Search page tabs fixed to pass `sort` as a real param (was previously concatenated into `q`).
 - [x] User recommendations: `GET /api/users/suggestions` — friends-of-friends ranked by overlap, with popular-user backfill, all blocked / followed / suspended IDs filtered out.
 
 ## Phase 5 — Creator tooling

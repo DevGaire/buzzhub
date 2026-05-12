@@ -20,16 +20,16 @@ export default function Page({ searchParams: { q } }: PageProps) {
           Search results for &quot;{q}&quot;
         </h1>
       </div>
-      <Tabs defaultValue="new">
+      <Tabs defaultValue="top">
         <TabsList className="w-full">
-          <TabsTrigger value="new" className="flex-1">New</TabsTrigger>
           <TabsTrigger value="top" className="flex-1">Top</TabsTrigger>
+          <TabsTrigger value="new" className="flex-1">New</TabsTrigger>
         </TabsList>
-        <TabsContent value="new" className="mt-4">
-          <SearchResults query={q} />
-        </TabsContent>
         <TabsContent value="top" className="mt-4">
-          <SearchResults query={`${q} sort:top`} />
+          <SearchResults query={q} sort="top" />
+        </TabsContent>
+        <TabsContent value="new" className="mt-4">
+          <SearchResults query={q} sort="new" />
         </TabsContent>
       </Tabs>
     </div>

@@ -10,9 +10,10 @@ import { Loader2 } from "lucide-react";
 
 interface SearchResultsProps {
     query: string;
+    sort?: "new" | "top";
 }
 
-export default function SearchResults({ query }: SearchResultsProps) {
+export default function SearchResults({ query, sort = "new" }: SearchResultsProps) {
     const {
         data,
         fetchNextPage,
@@ -21,12 +22,13 @@ export default function SearchResults({ query }: SearchResultsProps) {
         isFetchingNextPage,
         status,
     } = useInfiniteQuery({
-        queryKey: ["post-feed", "search", query],
+        queryKey: ["post-feed", "search", query, sort],
         queryFn: ({ pageParam }) =>
             kyInstance
                 .get("/api/search", {
                     searchParams: {
                         q: query,
+                        sort,
                         ...(pageParam ? { cursor: pageParam } : {}),
                     },
                 })
