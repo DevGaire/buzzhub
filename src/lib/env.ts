@@ -20,6 +20,13 @@ const schema = z.object({
   // suggestions). Missing → cache helper no-ops and we fall through to DB.
   UPSTASH_REDIS_REST_URL: z.string().url().optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
+  // Optional: Sentry error reporting. If unset, the SDK inits but ships
+  // no events. Auth token is needed for source-map upload during build.
+  SENTRY_DSN: z.string().url().optional(),
+  NEXT_PUBLIC_SENTRY_DSN: z.string().url().optional(),
+  SENTRY_AUTH_TOKEN: z.string().min(1).optional(),
+  SENTRY_ORG: z.string().min(1).optional(),
+  SENTRY_PROJECT: z.string().min(1).optional(),
 });
 
 export type Env = z.infer<typeof schema>;

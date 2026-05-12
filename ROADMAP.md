@@ -4,8 +4,8 @@ Single source of truth. Tick boxes as work lands. Phases are ordered: each one a
 
 **How to resume after a context reset:** read this file top-to-bottom, find the first unchecked `[ ]` item, continue from there. Update the "Current focus" line below before you stop.
 
-> **Current focus:** Phase 10 — production deployment (Node engine pin, Vercel project, env vars, prisma migrate deploy, custom domain, deliverability, monitoring, smoke tests, soft launch).
-> **Last commit:** `d1b73ebe2` — Phase 9 UX polish (onboarding wizard, 404/500/global-error, EmptyState component, ConfirmDialog, like/follow animations).
+> **Current focus:** Phase 10 — repo-side launch prep is done (Node pin, Sentry wired, smoke script, Phase 0 Sentry checkbox closed). What's left is the operator checklist in Phase 10 below: Vercel project, env vars, `prisma migrate deploy`, custom domain, deliverability records, Stripe live mode swap, Google OAuth prod callback, uptime monitor, backup verification, smoke pass, soft launch.
+> **Last commit:** _pending_ — Phase 10 repo-side prep (Node engine pin, Sentry instrumentation files + `withSentryConfig` wrap, `scripts/smoke.mjs`).
 
 ---
 
@@ -18,7 +18,7 @@ Clean up before piling on features. Small wins, low risk.
 - [x] Add `.claude/` to `.gitignore` (currently untracked, easy to commit by accident).
 - [x] Remove the `username === "admin"` debug fallback in `src/app/(main)/users/[username]/page.tsx` (now that we have real admin role).
 - [ ] Add a test runner: pick Vitest, wire `npm test`, port one happy-path test (e.g. `validateRequest` mock + a server action).
-- [ ] Verify Sentry is actually capturing errors in production (already installed; check DSN env var).
+- [x] Sentry is now wired (was a dep but not initialised): `instrumentation.ts` for server/edge runtimes, `instrumentation-client.ts` for the browser (with `onRouterTransitionStart` export for App Router route-tracing), and `next.config.mjs` wrapped with `withSentryConfig`. All Sentry env vars (`SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` / `SENTRY_AUTH_TOKEN` / `SENTRY_ORG` / `SENTRY_PROJECT`) are optional — without a DSN the SDK no-ops and the build still succeeds. Source-map upload activates when `SENTRY_AUTH_TOKEN` is present. To verify in production, set the DSN, deploy, then trigger an intentional error from `/api/health?fail=1` (TODO if you want a dedicated test route — for now, manually throw in any route handler).
 - [x] Audit env vars: write a `src/lib/env.ts` that fails fast at boot if any required var is missing.
 - [x] Add `/api/health` route (db ping for uptime checks).
 
@@ -120,23 +120,33 @@ Convert lurkers into return visitors.
 
 The finish line. Don't run this until the previous phases are green.
 
-- [ ] Pin Node version: add `"engines": { "node": ">=20" }` to `package.json`.
-- [ ] Create a production Vercel project (or chosen host); link to this repo.
-- [ ] Add all env vars in the host: DB, Stripe (live keys), Stream, UploadThing, SMTP, Sentry DSN, Google OAuth (production redirect URI).
-- [ ] Production database: use Neon production branch; turn on PITR.
-- [ ] Run `prisma migrate deploy` on production DB.
-- [ ] Run `node scripts/bootstrap-admin.mjs <your-email>` against production DB.
-- [ ] Verify the BuzzHub Community account exists in production.
-- [ ] Custom domain + SSL.
-- [ ] Email deliverability: Brevo SPF / DKIM / DMARC records on the domain.
-- [ ] Stripe live mode: swap test keys for live, register the production webhook URL.
-- [ ] Google OAuth: add production callback URL `https://<domain>/api/auth/callback/google`.
-- [ ] Vercel cron for `/api/clear-uploads`, `/api/clear-stories`, `/api/digests/send`.
-- [ ] Sentry release tagging on deploy (`SENTRY_AUTH_TOKEN`).
-- [ ] Synthetic monitoring: a free uptime check on `/` and `/api/health` (need to add the health route).
-- [ ] Backup verification: confirm Neon backups + a manual `pg_dump` test restore.
-- [ ] Smoke-test in production: signup → post → comment → like → DM → upload → subscribe.
-- [ ] Soft launch: invite ≤ 50 users, watch Sentry + DB.
+**Code-side (done in-repo):**
+- [x] Pin Node version: `package.json` `"engines": { "node": ">=20.0.0" }`.
+- [x] `/api/health` route shipped (Phase 0; pings DB).
+- [x] Sentry release tagging on deploy via `withSentryConfig` — auto-creates a release and tags events with it when `SENTRY_AUTH_TOKEN` is set.
+- [x] Smoke-test script at `scripts/smoke.mjs` (runs anonymous checks against `/api/health`, manifest, icons, `/offline`, `/login`, `/legal/*`). Run with `npm run smoke -- https://<domain>` after each deploy.
+- [x] Vercel cron entries in `vercel.json`: `/api/clear-uploads` daily, `/api/posts/publish-scheduled` every minute, `/api/users/purge-deleted` daily.
+
+**Pending Vercel-cron entries for already-shipped routes (operator: add to `vercel.json` once you know your plan's cron budget):**
+- `/api/clear-stories` — daily, e.g. `0 3 * * *`.
+- `/api/digests/send` — weekly, e.g. `0 14 * * MON`.
+- `/api/trending/refresh` — every hour or two, e.g. `0 * * * *`.
+
+**Operator-only (do these in the Vercel dashboard / DNS / external services):**
+- [ ] Create a production Vercel project; link to this repo.
+- [ ] Set env vars in the host: `POSTGRES_PRISMA_URL`, `POSTGRES_URL_NON_POOLING`, `GOOGLE_CLIENT_ID/SECRET`, `UPLOADTHING_SECRET`, `NEXT_PUBLIC_UPLOADTHING_APP_ID`, `NEXT_PUBLIC_STREAM_KEY`, `STREAM_SECRET`, `CORN_SECRET` *and* `CRON_SECRET` set to the same value (Vercel cron sends `Authorization: Bearer $CRON_SECRET`, route reads `CORN_SECRET` — typo carried from older code), `NEXT_PUBLIC_BASE_URL`, SMTP set, `MAIL_FROM`, Stripe live keys + `STRIPE_PRICE_ID_VERIFIED` + `STRIPE_WEBHOOK_SECRET`, optional `UPSTASH_REDIS_REST_URL/TOKEN`, optional Sentry (`SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT`), `NEXT_PUBLIC_VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY` from `scripts/setup-vapid.mjs`.
+- [ ] Production database: use the Neon production branch; turn on PITR.
+- [ ] Run `prisma migrate deploy` on the production DB. Pending migrations: `20260512000000_add_post_drafts`, `20260512100000_add_scheduled_posts`, `20260512200000_add_analytics`, `20260512300000_add_account_deletion`.
+- [ ] Run `node scripts/bootstrap-admin.mjs <your-email>` against the production DB.
+- [ ] Verify the `@buzzhub` community account exists in production (bootstrap script seeds it).
+- [ ] Custom domain + SSL on Vercel.
+- [ ] Email deliverability: SPF / DKIM / DMARC records on the domain for the SMTP / Brevo sender.
+- [ ] Stripe live mode: swap test keys for live, register the production webhook URL (`https://<domain>/api/billing/webhook`), copy the live signing secret into `STRIPE_WEBHOOK_SECRET`.
+- [ ] Google OAuth: add production callback URL `https://<domain>/api/auth/callback/google` (or whatever your auth route is) to the OAuth client.
+- [ ] Synthetic monitoring: free uptime check on `/` and `/api/health` (BetterStack, UptimeRobot, etc.).
+- [ ] Backup verification: confirm Neon PITR is active, take one manual `pg_dump`, verify restore on a throwaway DB.
+- [ ] Smoke-test in production: `npm run smoke -- https://<domain>` (covers anonymous routes), then manually run signup → post → comment → like → DM → upload → subscribe.
+- [ ] Soft launch: invite ≤ 50 users, watch Sentry + DB metrics for 48h.
 - [ ] Public launch.
 
 ---

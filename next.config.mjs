@@ -1,3 +1,5 @@
+import { withSentryConfig } from "@sentry/nextjs";
+
 /** @type {import('next').NextConfig} */
 const securityHeaders = [
   {
@@ -73,4 +75,24 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+// Wrap with Sentry. Without SENTRY_AUTH_TOKEN, source-map upload is
+// skipped silently (build still succeeds). Without a DSN, the runtime
+// inits but ships nothing — safe to deploy unconfigured.
+export default withSentryConfig(nextConfig, {
+  silent: !process.env.SENTRY_AUTH_TOKEN,
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  // Source maps are uploaded only when an auth token is present.
+  sourcemaps: {
+    disable: !process.env.SENTRY_AUTH_TOKEN,
+  },
+  // Use the `release` env so Sentry tags events with the current deploy.
+  release: {
+    create: !!process.env.SENTRY_AUTH_TOKEN,
+    deploy: process.env.SENTRY_AUTH_TOKEN
+      ? { env: process.env.NODE_ENV || "production" }
+      : undefined,
+  },
+  // Hide the source-map upload logs in CI unless we asked for noise.
+  hideSourceMaps: true,
+});
