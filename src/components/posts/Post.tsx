@@ -3,9 +3,7 @@
 import { useSession } from "@/app/(main)/SessionProvider";
 import { PostData, CommentData, PostsPage } from "@/lib/types";
 import { cn, formatRelativeDate } from "@/lib/utils";
-import { Media } from "@prisma/client";
 import { MessageSquare, Repeat, Share2 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import Comments from "../comments/Comments";
@@ -21,6 +19,7 @@ import QuotePostDisplay from "./QuotePostDisplay";
 import { useMutation, useQueryClient, QueryFilters, InfiniteData } from "@tanstack/react-query";
 import { useToast } from "../ui/use-toast";
 import { repostPost } from "./actions";
+import MediaCarousel from "./MediaCarousel";
 
 interface PostProps {
   post: PostData;
@@ -76,7 +75,7 @@ export default function Post({ post }: PostProps) {
         <div className="whitespace-pre-line break-words">{post.content}</div>
       </Linkify>
       {!!post.attachments.length && (
-        <MediaPreviews attachments={post.attachments} />
+        <MediaCarousel attachments={post.attachments} />
       )}
       {post.poll && (
         <PollDisplay poll={post.poll as any} postId={post.id} />
@@ -124,165 +123,6 @@ export default function Post({ post }: PostProps) {
         />
       )}
     </article>
-  );
-}
-
-interface MediaPreviewsProps {
-  attachments: Media[];
-}
-
-function MediaPreviews({ attachments }: MediaPreviewsProps) {
-  return (
-    <div
-      className={cn(
-        "flex flex-col gap-3",
-        attachments.length > 1 && "sm:grid sm:grid-cols-2",
-      )}
-    >
-      {attachments.map((m) => (
-        <MediaPreview key={m.id} media={m} />
-      ))}
-    </div>
-  );
-}
-
-interface MediaPreviewProps {
-  media: Media;
-}
-
-function MediaPreview({ media }: MediaPreviewProps) {
-  const [imageError, setImageError] = useState(false);
-  const [imageLoading, setImageLoading] = useState(true);
-
-  if (media.type === "IMAGE") {
-    if (imageError) {
-      return (
-        <div className="mx-auto size-fit max-h-[30rem] rounded-2xl bg-muted flex items-center justify-center p-8">
-          <div className="text-center">
-            <p className="text-destructive font-medium">❌ Image failed to load</p>
-            <p className="text-sm text-muted-foreground mt-2 break-all">URL: {media.url}</p>
-            <button 
-              onClick={() => {
-                setImageError(false);
-                setImageLoading(true);
-              }}
-              className="mt-2 text-xs text-primary hover:underline"
-            >
-              🔄 Retry
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="relative mx-auto size-fit max-h-[30rem] rounded-2xl overflow-hidden">
-        {imageLoading && (
-          <div className="absolute inset-0 bg-muted animate-pulse flex items-center justify-center">
-            <p className="text-sm text-muted-foreground">Loading image...</p>
-          </div>
-        )}
-        <Image
-          src={media.url}
-          alt="Attachment"
-          width={500}
-          height={500}
-          className="mx-auto size-fit max-h-[30rem] rounded-2xl"
-          onError={() => {
-            setImageError(true);
-            setImageLoading(false);
-          }}
-          onLoad={() => setImageLoading(false)}
-          onLoadStart={() => setImageLoading(true)}
-        />
-      </div>
-    );
-  }
-
-  if (media.type === "GIF") {
-    if (imageError) {
-      return (
-        <div className="mx-auto size-fit max-h-[30rem] rounded-2xl bg-muted flex items-center justify-center p-8">
-          <div className="text-center">
-            <p className="text-destructive font-medium">❌ GIF failed to load</p>
-            <p className="text-sm text-muted-foreground mt-2 break-all">URL: {media.url}</p>
-            <button 
-              onClick={() => {
-                setImageError(false);
-                setImageLoading(true);
-              }}
-              className="mt-2 text-xs text-primary hover:underline"
-            >
-              🔄 Retry
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="relative mx-auto size-fit max-h-[30rem] rounded-2xl overflow-hidden">
-        {imageLoading && (
-          <div className="absolute inset-0 bg-muted animate-pulse flex items-center justify-center">
-            <p className="text-sm text-muted-foreground">Loading GIF...</p>
-          </div>
-        )}
-        <Image
-          src={media.url}
-          alt="GIF"
-          width={500}
-          height={500}
-          className="mx-auto size-fit max-h-[30rem] rounded-2xl"
-          unoptimized
-          onError={() => {
-            setImageError(true);
-            setImageLoading(false);
-          }}
-          onLoad={() => setImageLoading(false)}
-          onLoadStart={() => setImageLoading(true)}
-        />
-      </div>
-    );
-  }
-
-  if (media.type === "VIDEO") {
-    return (
-      <div className="mx-auto size-fit max-h-[30rem] rounded-2xl overflow-hidden">
-        <video
-          src={media.url}
-          controls
-          className="mx-auto size-fit max-h-[30rem] rounded-2xl"
-        />
-      </div>
-    );
-  }
-
-  if (media.type === "AUDIO") {
-    return (
-      <div className="mx-auto max-w-md rounded-2xl bg-muted/50 p-4">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-            🎵
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-medium text-sm">Audio</p>
-            <p className="text-xs text-muted-foreground">Click to play</p>
-          </div>
-        </div>
-        <audio controls className="w-full">
-          <source src={media.url} type="audio/mpeg" />
-          <source src={media.url} type="audio/wav" />
-          <source src={media.url} type="audio/ogg" />
-          Your browser does not support the audio element.
-        </audio>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mx-auto size-fit max-h-[30rem] rounded-2xl bg-muted flex items-center justify-center p-8">
-      <p className="text-destructive">❌ Unsupported media type: {media.type}</p>
-    </div>
   );
 }
 
