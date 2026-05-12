@@ -1,5 +1,7 @@
 "use client";
 
+import ConfirmDialog from "@/components/ConfirmDialog";
+import EmptyState from "@/components/EmptyState";
 import InfiniteScrollContainer from "@/components/InfiniteScrollContainer";
 import LoadingButton from "@/components/LoadingButton";
 import PostsLoadingSkeleton from "@/components/posts/PostsLoadingSkeleton";
@@ -51,9 +53,11 @@ export default function DraftsList() {
   }
   if (!items.length) {
     return (
-      <p className="rounded-2xl bg-card p-8 text-center text-muted-foreground">
-        Nothing parked here. Use &quot;Save as draft&quot; or &quot;Schedule&quot; in the composer to send a post here first.
-      </p>
+      <EmptyState
+        emoji="📝"
+        title="No drafts or scheduled posts"
+        description={'Use "Save as draft" or "Schedule" in the composer to park a post here.'}
+      />
     );
   }
 
@@ -77,6 +81,7 @@ function DraftRow({ draft }: { draft: PostData }) {
   const [editing, setEditing] = useState(false);
   const [content, setContent] = useState(draft.content);
   const [rescheduling, setRescheduling] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [scheduleAt, setScheduleAt] = useState<string>(
     draft.scheduledFor
       ? toLocalDatetimeInput(new Date(draft.scheduledFor))
@@ -293,11 +298,7 @@ function DraftRow({ draft }: { draft: PostData }) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => {
-                if (confirm("Delete this post? This can't be undone.")) {
-                  remove.mutate();
-                }
-              }}
+              onClick={() => setConfirmingDelete(true)}
               disabled={remove.isPending}
               className="text-destructive hover:text-destructive"
             >
@@ -344,6 +345,17 @@ function DraftRow({ draft }: { draft: PostData }) {
           </>
         )}
       </div>
+      <ConfirmDialog
+        open={confirmingDelete}
+        onOpenChange={setConfirmingDelete}
+        title={isScheduled ? "Delete scheduled post?" : "Delete draft?"}
+        description="This can't be undone."
+        confirmLabel="Delete"
+        destructive
+        onConfirm={async () => {
+          await remove.mutateAsync();
+        }}
+      />
     </div>
   );
 }

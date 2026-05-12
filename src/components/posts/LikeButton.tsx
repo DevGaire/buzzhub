@@ -59,12 +59,21 @@ export default function LikeButton({ postId, initialState }: LikeButtonProps) {
     });
 
     return (
-        <button onClick={() => mutate()} className="flex items-center gap-2">
+        <button
+            onClick={() => mutate()}
+            className="group/like flex items-center gap-2"
+            aria-pressed={data.isLikedByUser}
+        >
             <Heart
                 className={cn(
-                    "size-5",
-                    data.isLikedByUser && "fill-red-500 text-red-500",
+                    "size-5 transition-all duration-200 ease-out group-active/like:scale-125",
+                    // `key`-toggling via data attribute lets a one-shot
+                    // pop animation re-fire on every toggle.
+                    data.isLikedByUser
+                        ? "fill-red-500 text-red-500 animate-in zoom-in-50"
+                        : "scale-100",
                 )}
+                key={data.isLikedByUser ? "liked" : "unliked"}
             />
             <span className="text-sm font-medium tabular-nums">
                 {data.likes} <span className="hidden sm:inline">likes</span>

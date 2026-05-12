@@ -1,5 +1,6 @@
 "use client";
 
+import EmptyState from "@/components/EmptyState";
 import InfiniteScrollContainer from "@/components/InfiniteScrollContainer";
 import Post from "@/components/posts/Post";
 import PostsLoadingSkeleton from "@/components/posts/PostsLoadingSkeleton";
@@ -43,9 +44,11 @@ export default function FollowingFeed() {
 
   if (status === "success" && !posts.length && !hasNextPage) {
     return (
-      <p className="text-center text-muted-foreground">
-        No posts found. Start following people to see their posts here.
-      </p>
+      <EmptyState
+        emoji="👋"
+        title="Follow someone to see posts here"
+        description="The Following tab shows updates from accounts you follow. Head to Explore to find people."
+      />
     );
   }
 

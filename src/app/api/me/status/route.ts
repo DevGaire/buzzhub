@@ -11,18 +11,26 @@ export async function GET() {
   const { user } = await validateRequest();
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-  const row = await prisma.user.findUnique({
-    where: { id: user.id },
-    select: {
-      deletionRequestedAt: true,
-      suspendedAt: true,
-      isVerified: true,
-    },
-  });
+  const [row, followingCount] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: user.id },
+      select: {
+        deletionRequestedAt: true,
+        suspendedAt: true,
+        isVerified: true,
+        avatarUrl: true,
+        createdAt: true,
+      },
+    }),
+    prisma.follow.count({ where: { followerId: user.id } }),
+  ]);
 
   return Response.json({
     deletionRequestedAt: row?.deletionRequestedAt ?? null,
     suspendedAt: row?.suspendedAt ?? null,
     isVerified: row?.isVerified ?? false,
+    avatarUrl: row?.avatarUrl ?? null,
+    createdAt: row?.createdAt ?? null,
+    followingCount,
   });
 }

@@ -59,7 +59,7 @@ export default function FollowButton({
       size="sm"
       onClick={() => mutate()}
       disabled={isPending}
-      className="rounded-full px-4 text-xs font-semibold"
+      className="rounded-full px-4 text-xs font-semibold transition-transform duration-150 active:scale-95"
       onMouseEnter={(e) => {
         if (data.isFollowedByUser) {
           (e.currentTarget as HTMLButtonElement).textContent = "Unfollow";

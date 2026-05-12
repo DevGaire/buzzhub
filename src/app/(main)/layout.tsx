@@ -2,6 +2,7 @@ import { validateRequest } from "@/auth";
 import { redirect } from "next/navigation";
 import MenuBar from "./MenuBar";
 import Navbar from "./Navbar";
+import OnboardingWizard from "./OnboardingWizard";
 import SessionProvider from "./SessionProvider";
 import TrendsSidebar from "@/components/TrendsSidebar";
 
@@ -36,6 +37,7 @@ export default async function Layout({
 
         {/* Mobile bottom nav */}
         <MenuBar className="sticky bottom-0 z-40 flex w-full justify-around border-t bg-card/95 backdrop-blur-md p-3 lg:hidden" />
+        <OnboardingWizard />
       </div>
     </SessionProvider>
   );

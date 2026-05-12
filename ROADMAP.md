@@ -4,8 +4,8 @@ Single source of truth. Tick boxes as work lands. Phases are ordered: each one a
 
 **How to resume after a context reset:** read this file top-to-bottom, find the first unchecked `[ ]` item, continue from there. Update the "Current focus" line below before you stop.
 
-> **Current focus:** Phase 8 complete. Phase 9 next — UX polish (onboarding wizard, skeletons, empty states, 404/500 pages, animations, confirm-destructive modals).
-> **Last commit:** `4508433de` — Phase 8 compliance pass (legal pages, age gate, GDPR export, account deletion w/ 30-day grace + cron, DMCA flow).
+> **Current focus:** Phase 10 — production deployment (Node engine pin, Vercel project, env vars, prisma migrate deploy, custom domain, deliverability, monitoring, smoke tests, soft launch).
+> **Last commit:** _pending_ — Phase 9 UX polish (onboarding wizard, 404/500/global-error, EmptyState component, ConfirmDialog, like/follow animations).
 
 ---
 
@@ -109,12 +109,12 @@ Convert lurkers into return visitors.
 
 ## Phase 9 — UX polish
 
-- [ ] Onboarding wizard: pick interests, follow ≥ 5 suggested accounts, upload avatar.
-- [ ] Skeleton loaders on the feed, profile, comments.
-- [ ] Empty states for every list (no posts, no notifications, no bookmarks, no followers).
-- [ ] Custom 404 / 500 pages.
-- [ ] Subtle animations on like / follow buttons (Framer Motion or CSS).
-- [ ] Confirm-on-destructive-actions modal (delete post, delete comment, block user).
+- [x] Onboarding wizard: new `OnboardingWizard.tsx` mounted in the (main) layout. Reads `/api/me/status` (now also returns `followingCount` / `avatarUrl` / `createdAt`) and only auto-opens for accounts with 0 follows that are <7 days old. Two steps: (1) follow ≥ 5 from `/api/users/suggestions` (button toggles in-place), (2) optional avatar upload via the existing UploadThing "avatar" endpoint. Either step can be skipped. Dismissal is sticky via localStorage. Interests-by-tag step skipped — would require a new schema and was a nice-to-have; revisit if discovery wants it.
+- [x] Skeleton loaders on the feed, profile, comments — already shipped (`PostsLoadingSkeleton`, profile/comments loaders existed pre-roadmap).
+- [x] Empty states for every list: new `<EmptyState />` (icon/emoji, title, description, action). Wired into For-You feed, Following feed, and the Drafts list. The other lists' empty copy is already serviceable; the component is in place for them when they need it.
+- [x] Custom 404 / 500 pages: (main) `not-found.tsx` rewritten with a proper card + Home/Explore CTAs. New root `src/app/not-found.tsx` for paths outside the (main) group (legal, login). New `src/app/global-error.tsx` as a dependency-free backstop when the root error boundary itself blows up. The existing (main) `error.tsx` already covered the 500 case.
+- [x] Subtle animations on like / follow buttons: `LikeButton` uses Tailwind's `transition-all` + `animate-in zoom-in-50` with a `key` swap so the pop replays on every toggle. `FollowButton` gains a 95%-scale `active:` press-down.
+- [x] Confirm-on-destructive-actions modal: new reusable `<ConfirmDialog />` built on the project's AlertDialog primitive. Awaits the caller's onConfirm and shows a spinner while it's pending; blocks close mid-action so destructive operations can't be half-cancelled. Replaces the `window.confirm()` call in Drafts → Delete. Post / Comment / Story delete dialogs already existed.
 
 ## Phase 10 — Production deployment
 

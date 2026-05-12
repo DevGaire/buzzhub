@@ -1,5 +1,6 @@
 "use client";
 
+import EmptyState from "@/components/EmptyState";
 import InfiniteScrollContainer from "@/components/InfiniteScrollContainer";
 import Post from "@/components/posts/Post";
 import PostsLoadingSkeleton from "@/components/posts/PostsLoadingSkeleton";
@@ -45,9 +46,11 @@ export default function ForYouFeed() {
 
   if (status === "success" && !posts.length && !hasNextPage) {
     return (
-      <p className="text-center text-muted-foreground">
-        No one has posted anything yet.
-      </p>
+      <EmptyState
+        emoji="🌱"
+        title="Your feed is quiet"
+        description="Once people you follow start posting, you'll see their updates here. Try Explore to find someone to follow."
+      />
     );
   }
 
