@@ -5,7 +5,7 @@ Single source of truth. Tick boxes as work lands. Phases are ordered: each one a
 **How to resume after a context reset:** read this file top-to-bottom, find the first unchecked `[ ]` item, continue from there. Update the "Current focus" line below before you stop.
 
 > **Current focus:** Phase 5 — scheduled posts next (`scheduledFor` + publish cron), then multi-image carousel UI, then analytics dashboard.
-> **Last commit:** _pending_ — Phase 5 drafts (PostStatus enum, `/drafts` page, "Save as draft" composer button, drafts API + publish endpoint, single-post and feed guards so drafts stay author-only).
+> **Last commit:** `a96994d81` — Phase 5 drafts (PostStatus enum, `/drafts` page, "Save as draft" composer button, drafts API + publish endpoint, single-post and feed guards so drafts stay author-only).
 
 ---
 
