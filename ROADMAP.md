@@ -5,7 +5,7 @@ Single source of truth. Tick boxes as work lands. Phases are ordered: each one a
 **How to resume after a context reset:** read this file top-to-bottom, find the first unchecked `[ ]` item, continue from there. Update the "Current focus" line below before you stop.
 
 > **Current focus:** Phase 5 wrap (live streaming via Stream Video is the only remaining item — lower priority, deferrable). Then Phase 6 — performance & scale (image audit, Redis caching, N+1, indexes, Lighthouse, bundle).
-> **Last commit:** _pending_ — Phase 5 analytics (PostImpression + Follow.createdAt, beacon endpoint, `/analytics` dashboard with stat cards, 30-day sparklines, top posts).
+> **Last commit:** `21f5299a5` — Phase 5 analytics (PostImpression + Follow.createdAt, beacon endpoint, `/analytics` dashboard with stat cards, 30-day sparklines, top posts).
 
 ---
 
