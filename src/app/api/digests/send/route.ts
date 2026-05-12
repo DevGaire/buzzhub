@@ -33,6 +33,7 @@ async function buildUserDigest(userId: string) {
         userId: { in: followingIds },
         archived: false,
         deletedAt: null,
+        status: "PUBLISHED",
         user: { suspendedAt: null },
         createdAt: { gte: since },
       },

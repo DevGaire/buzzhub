@@ -80,7 +80,7 @@ export default function PostEditor() {
     startUpload(files);
   };
 
-  function onSubmit() {
+  function onSubmit(status: "published" | "draft" = "published") {
     const contentToSend = feeling
       ? `${input}${input ? '\n\n' : ''}${feeling.type === 'feeling' ? 'Feeling' : 'Activity'}: ${feeling.emoji} ${feeling.label}`
       : input;
@@ -89,9 +89,11 @@ export default function PostEditor() {
         content: contentToSend,
         mediaIds: attachments.map((a) => a.mediaId).filter(Boolean) as string[],
         visibility,
-        poll: poll
+        // Polls are public commitments — don't pair them with drafts.
+        poll: status === "published" && poll
           ? { options: poll.options.filter((o) => o.trim()), expiresInHours: poll.expiresInHours }
           : undefined,
+        status,
       },
       {
         onSuccess: () => {
@@ -352,18 +354,30 @@ export default function PostEditor() {
                 )}
               </div>
             </div>
-            <LoadingButton
-              onClick={onSubmit}
-              loading={mutation.isPending}
-              disabled={
-                !input.trim() ||
-                isUploading ||
-                (!!poll && poll.options.filter((o) => o.trim()).length < 2)
-              }
-              className="min-w-20"
-            >
-              Post
-            </LoadingButton>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onSubmit("draft")}
+                disabled={!input.trim() || isUploading || mutation.isPending}
+                className="h-8"
+                title="Save to drafts to publish later"
+              >
+                Save as draft
+              </Button>
+              <LoadingButton
+                onClick={() => onSubmit("published")}
+                loading={mutation.isPending}
+                disabled={
+                  !input.trim() ||
+                  isUploading ||
+                  (!!poll && poll.options.filter((o) => o.trim()).length < 2)
+                }
+                className="min-w-20"
+              >
+                Post
+              </LoadingButton>
+            </div>
           </div>
         </div>
       )}

@@ -13,6 +13,7 @@ export async function submitPost(input: {
   visibility?: "public" | "followers" | "only_me";
   poll?: { options: string[]; expiresInHours?: number };
   quotedPostId?: string;
+  status?: "draft" | "published";
 }) {
   const { user } = await validateRequest();
   if (!user) throw new Error("Unauthorized");
@@ -25,13 +26,17 @@ export async function submitPost(input: {
     throw new Error("Your account is suspended.");
   }
 
-  // 10 posts per minute per user.
-  const rl = limit(`post:${user.id}`, 10, 60_000);
-  if (!rl.ok) {
-    throw new Error("Slow down — you're posting too quickly.");
+  const { content, mediaIds, visibility, status } = createPostSchema.parse(input as any);
+  const isDraft = status === "draft";
+
+  // Rate-limit only real publishes — drafts shouldn't burn the budget.
+  if (!isDraft) {
+    const rl = limit(`post:${user.id}`, 10, 60_000);
+    if (!rl.ok) {
+      throw new Error("Slow down — you're posting too quickly.");
+    }
   }
 
-  const { content, mediaIds, visibility } = createPostSchema.parse(input as any);
   const mappedVisibility =
     visibility === "followers" ? "FOLLOWERS" : visibility === "only_me" ? "ONLY_ME" : "PUBLIC";
 
@@ -39,6 +44,7 @@ export async function submitPost(input: {
     data: {
       content,
       userId: user.id,
+      status: isDraft ? "DRAFT" : "PUBLISHED",
       visibility: mappedVisibility as any,
       quotedPostId: input.quotedPostId ?? null,
       attachments: { connect: mediaIds.map((id) => ({ id })) },
@@ -62,33 +68,84 @@ export async function submitPost(input: {
     include: getPostDataInclude(user.id),
   });
 
-  // mention notifications
-  const mentioned = Array.from(
-    new Set((content.match(/@([a-zA-Z0-9_]+)/g) || []).map((m) => m.slice(1).toLowerCase())),
-  );
-  if (mentioned.length) {
-    const users = await prisma.user.findMany({
-      where: { username: { in: mentioned } },
-      select: { id: true },
-    });
-    const recipients = users.filter((u) => u.id !== user.id);
-    await prisma.notification.createMany({
-      data: recipients.map((u) => ({
-        issuerId: user.id,
-        recipientId: u.id,
-        postId: newPost.id,
-        type: "MENTION",
-      })),
-      skipDuplicates: true,
-    });
-    for (const r of recipients) {
-      pushToUser(r.id, {
-        title: `${user.displayName} mentioned you`,
-        body: content.slice(0, 80),
-        url: `/posts/${newPost.id}`,
-      }).catch(() => {});
-    }
+  if (!isDraft) {
+    await sendMentionNotifications(newPost.id, content, user.id, user.displayName);
   }
 
   return newPost;
+}
+
+async function sendMentionNotifications(
+  postId: string,
+  content: string,
+  authorId: string,
+  authorName: string,
+) {
+  const mentioned = Array.from(
+    new Set((content.match(/@([a-zA-Z0-9_]+)/g) || []).map((m) => m.slice(1).toLowerCase())),
+  );
+  if (!mentioned.length) return;
+
+  const users = await prisma.user.findMany({
+    where: { username: { in: mentioned } },
+    select: { id: true },
+  });
+  const recipients = users.filter((u) => u.id !== authorId);
+  if (!recipients.length) return;
+
+  await prisma.notification.createMany({
+    data: recipients.map((u) => ({
+      issuerId: authorId,
+      recipientId: u.id,
+      postId,
+      type: "MENTION",
+    })),
+    skipDuplicates: true,
+  });
+  for (const r of recipients) {
+    pushToUser(r.id, {
+      title: `${authorName} mentioned you`,
+      body: content.slice(0, 80),
+      url: `/posts/${postId}`,
+    }).catch(() => {});
+  }
+}
+
+/**
+ * Promote a draft to PUBLISHED. Refreshes createdAt so it appears at the top
+ * of feeds (drafts that sat for a week shouldn't bury themselves on publish).
+ */
+export async function publishDraft(postId: string) {
+  const { user } = await validateRequest();
+  if (!user) throw new Error("Unauthorized");
+
+  const guard = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { suspendedAt: true },
+  });
+  if (guard?.suspendedAt) {
+    throw new Error("Your account is suspended.");
+  }
+
+  const rl = limit(`post:${user.id}`, 10, 60_000);
+  if (!rl.ok) {
+    throw new Error("Slow down — you're posting too quickly.");
+  }
+
+  const draft = await prisma.post.findUnique({
+    where: { id: postId },
+    select: { id: true, userId: true, status: true, content: true },
+  });
+  if (!draft || draft.userId !== user.id) throw new Error("Not found");
+  if (draft.status !== "DRAFT") throw new Error("Already published");
+
+  const published = await prisma.post.update({
+    where: { id: postId },
+    data: { status: "PUBLISHED", createdAt: new Date() },
+    include: getPostDataInclude(user.id),
+  });
+
+  await sendMentionNotifications(published.id, draft.content, user.id, user.displayName);
+
+  return published;
 }

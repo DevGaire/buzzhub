@@ -25,6 +25,9 @@ const getPost = cache(async (postId: string, loggedInUserId: string) => {
     });
 
     if (!post) notFound();
+    // Drafts are only visible to their author. To the rest of the world a
+    // draft simply doesn't exist.
+    if (post.status === "DRAFT" && post.userId !== loggedInUserId) notFound();
 
     return post;
 });

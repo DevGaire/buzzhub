@@ -22,10 +22,13 @@ export type LoginValues = z.infer<typeof loginSchema>;
 
 export const postVisibilitySchema = z.enum(["public", "followers", "only_me"]);
 
+export const postStatusSchema = z.enum(["draft", "published"]);
+
 export const createPostSchema = z.object({
   content: requiredString,
   mediaIds: z.array(z.string()).max(5, "Cannot have more than 5 attachments"),
   visibility: postVisibilitySchema.default("public"),
+  status: postStatusSchema.default("published"),
 });
 
 export const updatePostSchema = z.object({

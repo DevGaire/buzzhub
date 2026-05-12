@@ -4,8 +4,8 @@ Single source of truth. Tick boxes as work lands. Phases are ordered: each one a
 
 **How to resume after a context reset:** read this file top-to-bottom, find the first unchecked `[ ]` item, continue from there. Update the "Current focus" line below before you stop.
 
-> **Current focus:** Phase 5 — creator tooling (drafts, scheduled posts, multi-image carousels, analytics). Vercel cron entry for `/api/trending/refresh` is deferred to Phase 10 alongside the other cron URLs.
-> **Last commit:** `a50801ce1` — Phase 4 search weighting (websearch_to_tsquery + ts_rank_cd with username/displayName/content setweight, engagement and recency boost, Top tab now sorts by relevance).
+> **Current focus:** Phase 5 — scheduled posts next (`scheduledFor` + publish cron), then multi-image carousel UI, then analytics dashboard.
+> **Last commit:** _pending_ — Phase 5 drafts (PostStatus enum, `/drafts` page, "Save as draft" composer button, drafts API + publish endpoint, single-post and feed guards so drafts stay author-only).
 
 ---
 
@@ -74,7 +74,7 @@ Convert lurkers into return visitors.
 
 ## Phase 5 — Creator tooling
 
-- [ ] Drafts: `Post` gets `status` enum (`DRAFT`, `PUBLISHED`); list at `/drafts`.
+- [x] Drafts: `Post.status` enum (`DRAFT` / `PUBLISHED`, default `PUBLISHED`) + index on `(userId, status)`. `/drafts` page lists, edits inline, deletes, or publishes. Composer has a "Save as draft" button next to Post; drafts skip rate-limit and mention notifications. On publish, `createdAt` is refreshed and mention notifications fire. `visiblePostFilter` excludes drafts; `/posts/[id]` page + GET API return 404 to non-authors; following / digests queries also filter `status: PUBLISHED`. Migration: `prisma/migrations/20260512000000_add_post_drafts`.
 - [ ] Scheduled posts: `scheduledFor` timestamp + cron to publish.
 - [ ] Multi-image carousels (Media[] already supports it; UI needs a swiper).
 - [ ] Analytics dashboard at `/analytics`: posts, impressions (need impression tracking), follower growth chart.

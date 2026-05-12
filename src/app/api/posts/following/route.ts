@@ -29,6 +29,7 @@ export async function GET(req: NextRequest) {
         userId: { notIn: hiddenIds },
         archived: false,
         deletedAt: null,
+        status: "PUBLISHED",
       },
       orderBy: { createdAt: "desc" },
       take: pageSize + 1,

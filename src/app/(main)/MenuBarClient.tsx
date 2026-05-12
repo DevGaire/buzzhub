@@ -7,6 +7,7 @@ import {
   Bell,
   Bookmark,
   Compass,
+  FileText,
   Home,
   Mail,
   Settings,
@@ -113,6 +114,7 @@ export default function MenuBarClient({
         pathname={pathname}
       />
       <NavItem href="/bookmarks" icon={Bookmark} label="Bookmarks" active={pathname === "/bookmarks"} />
+      <NavItem href="/drafts" icon={FileText} label="Drafts" active={pathname === "/drafts"} />
       <NavItem href="/my-profile" icon={User} label="Profile" active={pathname === "/my-profile"} />
       <NavItem href="/explore" icon={Compass} label="Explore" active={pathname === "/explore"} />
       <NavItem href="/verified-badge" icon={BadgeCheck} label="Get Verified" active={pathname === "/verified-badge"} />

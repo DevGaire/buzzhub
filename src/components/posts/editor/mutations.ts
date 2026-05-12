@@ -18,7 +18,16 @@ export function useSubmitPostMutation() {
 
   const mutation = useMutation({
     mutationFn: submitPost,
-    onSuccess: async (newPost) => {
+    onSuccess: async (newPost, variables) => {
+      const isDraft = variables.status === "draft";
+
+      if (isDraft) {
+        // Drafts don't go in any public feed cache. Just refresh the drafts list.
+        await queryClient.invalidateQueries({ queryKey: ["drafts"] });
+        toast({ description: "Draft saved" });
+        return;
+      }
+
       const queryFilter = {
         queryKey: ["post-feed"],
         predicate(query) {

@@ -39,6 +39,10 @@ export async function GET(
       return Response.json({ error: "Post not found" }, { status: 404 });
     }
 
+    if (post.status === "DRAFT" && post.userId !== user.id) {
+      return Response.json({ error: "Post not found" }, { status: 404 });
+    }
+
     // Check visibility permissions
     if (post.visibility === PostVisibility.ONLY_ME && post.userId !== user.id) {
       return Response.json({ error: "Post not found" }, { status: 404 });

@@ -129,6 +129,7 @@ model Post {
   updatedAt           DateTime       @updatedAt
   archived            Boolean        @default(false)
   deletedAt           DateTime?
+  status              PostStatus     @default(PUBLISHED)
   visibility          PostVisibility @default(PUBLIC)
   quotedPostId        String?
   bookmarks           Bookmark[]
@@ -144,7 +145,13 @@ model Post {
 
   @@index([createdAt(sort: Desc)])
   @@index([userId])
+  @@index([userId, status])
   @@map("posts")
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
 }
 
 model Media {
