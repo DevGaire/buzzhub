@@ -5,7 +5,7 @@ Single source of truth. Tick boxes as work lands. Phases are ordered: each one a
 **How to resume after a context reset:** read this file top-to-bottom, find the first unchecked `[ ]` item, continue from there. Update the "Current focus" line below before you stop.
 
 > **Current focus:** Phase 6 — remaining items: image audit (raw `<img>` in messages module are deliberate for blob URLs / Stream CDN; doc and skip), DB indexes from EXPLAIN ANALYZE, Lighthouse pass, bundle analyzer. /messages is the biggest chunk (518kB) — Stream SDK split is the obvious target.
-> **Last commit:** _pending_ — Phase 6 Redis cache layer (Upstash, no-op fallback) + trending/suggestions cache wiring + for-you parallelization.
+> **Last commit:** `cc5efee97` — Phase 6 Redis cache layer (Upstash, no-op fallback) + trending/suggestions cache wiring + for-you parallelization.
 
 ---
 
