@@ -7,6 +7,7 @@ import { MessageSquare, Repeat, Share2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import Comments from "../comments/Comments";
+import CommentsSheet from "../comments/CommentsSheet";
 import Linkify from "../Linkify";
 import UserAvatar from "../UserAvatar";
 import UserTooltip from "../UserTooltip";
@@ -119,12 +120,24 @@ export default function Post({ post }: PostProps) {
           }}
         />
       </div>
+      {/* Desktop: inline thread under the post. */}
       {showComments && (
-        <Comments 
-          post={post} 
+        <div className="hidden lg:block">
+          <Comments
+            post={post}
+            initialExpandedCommentId={expandedCommentId}
+          />
+        </div>
+      )}
+      {/* Mobile/tablet: bottom-sheet so long threads don't bury the next post. */}
+      <div className="lg:hidden">
+        <CommentsSheet
+          post={post}
+          open={showComments}
+          onOpenChange={setShowComments}
           initialExpandedCommentId={expandedCommentId}
         />
-      )}
+      </div>
     </article>
   );
 }

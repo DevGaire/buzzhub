@@ -4,8 +4,8 @@ Single source of truth. Tick boxes as work lands. Phases are ordered: each one a
 
 **How to resume after a context reset:** read this file top-to-bottom, find the first unchecked `[ ]` item, continue from there. Update the "Current focus" line below before you stop.
 
-> **Current focus:** Phase 7 — pull-to-refresh on feed, bottom-sheet comments on mobile, camera capture for stories. (Phase 6 image audit / DB indexes / Lighthouse / bundle split skipped per user request.)
-> **Last commit:** `e91a5886f` — Phase 7 PWA scaffolding (manifest, SVG icons, upgraded service worker with offline shell + media SWR, universal SW registration, install prompt).
+> **Current focus:** Phase 7 — only camera capture for stories on mobile is left (lower-priority, can defer to Phase 9 polish). Otherwise Phase 8 — compliance & legal (terms/privacy pages, GDPR export, account deletion, age gate, DMCA flow).
+> **Last commit:** _pending_ — Phase 7 mobile polish (pull-to-refresh on both feeds, bottom-sheet comments on mobile).
 
 ---
 
@@ -95,8 +95,8 @@ Convert lurkers into return visitors.
 - [x] Service worker for offline shell + cached avatars: `public/sw.js` upgraded — app-shell cache (`/offline`, manifest, icons), stale-while-revalidate for upload-CDN media (utfs.io + *.ufs.sh), HTML navigations are network-first with `/offline` fallback, API/auth paths bypass the SW entirely (never cached, so no per-user data leaks). Versioned cache keys so the SW cleans up old buckets on activation. SW is registered universally by a new `<PWAInit />` at the root (used to only register on push opt-in).
 - [x] Install prompt component: `<InstallPWA />` captures `beforeinstallprompt` via PWAInit, then shows a dismissable bottom-right card. Hidden if already running standalone, hidden for 14 days after dismissal (localStorage).
 - [ ] Camera capture for stories on mobile.
-- [ ] Pull-to-refresh on the feed.
-- [ ] Bottom sheet for comments (mobile).
+- [x] Pull-to-refresh on the feed: new `<PullToRefresh />` (no deps) — only arms when the page is at scroll-top, gated to coarse-pointer devices, rubber-band resistance, 70px threshold, sticky indicator while the caller's refresh promise resolves. Wired into both For-You and Following feeds (`queryClient.resetQueries(['post-feed', …])`).
+- [x] Bottom sheet for comments (mobile): new `<CommentsSheet />` built directly on Radix Dialog — slides up from the bottom, 85vh max, grab handle, safe-area-inset padding. `Post.tsx` renders inline comments on `lg:` and up, sheet below — same `showComments` state drives both.
 
 ## Phase 8 — Compliance & legal
 
