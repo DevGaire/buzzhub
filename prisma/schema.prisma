@@ -113,11 +113,13 @@ model Session {
 model Follow {
   followerId  String
   followingId String
+  createdAt   DateTime @default(now())
   follower    User   @relation("Following", fields: [followerId], references: [id], onDelete: Cascade)
   following   User   @relation("Followers", fields: [followingId], references: [id], onDelete: Cascade)
 
   @@unique([followerId, followingId])
   @@index([followingId])
+  @@index([followingId, createdAt])
   @@map("follows")
 }
 
@@ -138,6 +140,7 @@ model Post {
   likes               Like[]
   linkedNotifications Notification[]
   attachments         Media[]
+  impressions         PostImpression[]
   user                User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   collectionItems     BookmarkCollectionItem[]
   quotedPost          Post?          @relation("QuoteRelation", fields: [quotedPostId], references: [id], onDelete: SetNull)
@@ -155,6 +158,18 @@ enum PostStatus {
   DRAFT
   SCHEDULED
   PUBLISHED
+}
+
+model PostImpression {
+  id        String   @id @default(cuid())
+  postId    String
+  viewerId  String?
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId, createdAt])
+  @@index([viewerId])
+  @@map("post_impressions")
 }
 
 model Media {

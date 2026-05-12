@@ -4,6 +4,7 @@ import UserAvatar from "@/components/UserAvatar";
 import { cn } from "@/lib/utils";
 import {
   BadgeCheck,
+  BarChart3,
   Bell,
   Bookmark,
   Compass,
@@ -115,6 +116,7 @@ export default function MenuBarClient({
       />
       <NavItem href="/bookmarks" icon={Bookmark} label="Bookmarks" active={pathname === "/bookmarks"} />
       <NavItem href="/drafts" icon={FileText} label="Drafts" active={pathname === "/drafts"} />
+      <NavItem href="/analytics" icon={BarChart3} label="Analytics" active={pathname === "/analytics"} />
       <NavItem href="/my-profile" icon={User} label="Profile" active={pathname === "/my-profile"} />
       <NavItem href="/explore" icon={Compass} label="Explore" active={pathname === "/explore"} />
       <NavItem href="/verified-badge" icon={BadgeCheck} label="Get Verified" active={pathname === "/verified-badge"} />

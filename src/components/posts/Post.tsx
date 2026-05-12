@@ -5,7 +5,7 @@ import { PostData, CommentData, PostsPage } from "@/lib/types";
 import { cn, formatRelativeDate } from "@/lib/utils";
 import { MessageSquare, Repeat, Share2 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Comments from "../comments/Comments";
 import Linkify from "../Linkify";
 import UserAvatar from "../UserAvatar";
@@ -30,14 +30,17 @@ export default function Post({ post }: PostProps) {
 
   const [showComments, setShowComments] = useState(false);
   const [expandedCommentId, setExpandedCommentId] = useState<string | null>(null);
+  const articleRef = useRef<HTMLElement | null>(null);
 
   const handleCommentPreviewClick = (commentId: string) => {
     setShowComments(true);
     setExpandedCommentId(commentId);
   };
 
+  useImpressionBeacon(articleRef, post.id, post.user.id === user.id);
+
   return (
-    <article className="group/post space-y-3 rounded-2xl bg-card p-5 shadow-sm transition-shadow hover:shadow-md">
+    <article ref={articleRef} className="group/post space-y-3 rounded-2xl bg-card p-5 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex justify-between gap-3">
         <div className="flex flex-wrap gap-3">
           <UserTooltip user={post.user}>
@@ -124,6 +127,57 @@ export default function Post({ post }: PostProps) {
       )}
     </article>
   );
+}
+
+// Module-scoped per page-view dedupe. Reset on a hard nav; same-tab SPA
+// nav keeps it warm so we don't double-count a post the user just saw.
+const firedImpressions = new Set<string>();
+
+function useImpressionBeacon(
+  ref: React.RefObject<HTMLElement>,
+  postId: string,
+  isOwn: boolean,
+) {
+  useEffect(() => {
+    if (isOwn) return;
+    if (firedImpressions.has(postId)) return;
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const io = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry) return;
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+          // Only count when the post lingers ≥ 700ms — scroll-past doesn't.
+          if (!timer) {
+            timer = setTimeout(() => {
+              if (firedImpressions.has(postId)) return;
+              firedImpressions.add(postId);
+              fetch(`/api/posts/${postId}/impression`, {
+                method: "POST",
+                keepalive: true,
+              }).catch(() => {
+                // Allow a retry on the next mount if the call failed.
+                firedImpressions.delete(postId);
+              });
+              io.disconnect();
+            }, 700);
+          }
+        } else if (timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
+      },
+      { threshold: [0, 0.5, 1] },
+    );
+    io.observe(el);
+    return () => {
+      if (timer) clearTimeout(timer);
+      io.disconnect();
+    };
+  }, [ref, postId, isOwn]);
 }
 
 interface LatestCommentPreviewProps {
