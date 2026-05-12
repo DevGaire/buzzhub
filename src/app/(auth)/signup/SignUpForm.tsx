@@ -11,6 +11,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import Link from "next/link";
 import { signUpSchema, SignUpValues } from "@/lib/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState, useTransition } from "react";
@@ -29,6 +30,7 @@ export default function SignUpForm() {
       email: "",
       username: "",
       password: "",
+      ageConfirmed: false as unknown as true,
     },
   });
 
@@ -81,6 +83,31 @@ export default function SignUpForm() {
               <FormLabel>Password</FormLabel>
               <FormControl>
                 <PasswordInput placeholder="Password" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="ageConfirmed"
+          render={({ field }) => (
+            <FormItem>
+              <FormControl>
+                <label className="flex items-start gap-2 text-xs text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5"
+                    checked={!!field.value}
+                    onChange={(e) => field.onChange(e.target.checked)}
+                  />
+                  <span>
+                    I&apos;m at least 13 years old and I agree to the{" "}
+                    <Link href="/legal/terms" className="underline" target="_blank">Terms of Service</Link>{" "}
+                    and{" "}
+                    <Link href="/legal/privacy" className="underline" target="_blank">Privacy Policy</Link>.
+                  </span>
+                </label>
               </FormControl>
               <FormMessage />
             </FormItem>

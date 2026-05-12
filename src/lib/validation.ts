@@ -9,6 +9,11 @@ export const signUpSchema = z.object({
     "Only letters, numbers, - and _ allowed",
   ),
   password: requiredString.min(8, "Must be at least 8 characters"),
+  // Age gate: must be true. We don't store DOB — just record that the user
+  // affirmed they're ≥13 at the time of signup.
+  ageConfirmed: z.literal(true, {
+    errorMap: () => ({ message: "You must be at least 13 to sign up" }),
+  }),
 });
 
 export type SignUpValues = z.infer<typeof signUpSchema>;

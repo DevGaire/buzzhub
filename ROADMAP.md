@@ -4,8 +4,8 @@ Single source of truth. Tick boxes as work lands. Phases are ordered: each one a
 
 **How to resume after a context reset:** read this file top-to-bottom, find the first unchecked `[ ]` item, continue from there. Update the "Current focus" line below before you stop.
 
-> **Current focus:** Phase 7 complete. Phase 8 next — compliance & legal (`/terms`, `/privacy`, GDPR export, account deletion with grace, age gate on signup, DMCA flow).
-> **Last commit:** `a226f6313` — Phase 7 close (mobile camera capture for stories via native `capture` attribute).
+> **Current focus:** Phase 8 complete. Phase 9 next — UX polish (onboarding wizard, skeletons, empty states, 404/500 pages, animations, confirm-destructive modals).
+> **Last commit:** _pending_ — Phase 8 compliance pass (legal pages, age gate, GDPR export, account deletion w/ 30-day grace + cron, DMCA flow).
 
 ---
 
@@ -100,12 +100,12 @@ Convert lurkers into return visitors.
 
 ## Phase 8 — Compliance & legal
 
-- [ ] `/terms` and `/privacy` pages.
-- [ ] Cookie consent banner (only if we ship analytics).
-- [ ] GDPR data export endpoint (`POST /api/me/export` → emails a JSON dump).
-- [ ] Account deletion with 30-day grace period (`deletedAt` + scheduled hard-delete cron).
-- [ ] Age gate on signup (≥ 13).
-- [ ] DMCA takedown flow (form + admin queue, reuses Report model).
+- [x] `/terms` and `/privacy` pages: hand-written at `src/app/legal/{terms,privacy}/page.tsx`. Statically rendered; covers acceptable use, paid features, deletion grace, data collection, retention, GDPR rights, third-party processors. Signup checkbox links to both.
+- [x] Cookie consent banner — N/A. We only set the auth session cookie; no analytics shipped, no consent needed. (Add this back if Phase 10 introduces analytics.) The privacy page documents the single session cookie explicitly.
+- [x] GDPR data export endpoint: `GET /api/me/export` returns a downloadable JSON dump (profile, posts, comments, likes, bookmarks, follows, followers, reports) with `Content-Disposition: attachment`. Rate-limited to 1/hour/user. Settings → Data triggers the download client-side.
+- [x] Account deletion with 30-day grace: `User.deletionRequestedAt` (migration `20260512300000_add_account_deletion`). `POST /api/me/delete` schedules + invalidates session, `DELETE /api/me/delete` cancels, `GET /api/me/status` reads current state for the Settings UI. Cron at `GET /api/users/purge-deleted` (CORN_SECRET-gated, batch of 50, skips admins) hard-deletes users whose grace expired — cascading deletes on User clean up posts/comments/follows/sessions. Vercel cron entry at `30 3 * * *`. Settings → Data card shows scheduled state with a Cancel button.
+- [x] Age gate on signup (≥ 13): `signUpSchema` now requires `ageConfirmed: z.literal(true)`. Signup form renders a checkbox with linked Terms + Privacy. Server action re-parses through the same schema so the check can't be bypassed.
+- [x] DMCA takedown flow: public-facing `/legal/dmca` page with a structured form (target type/id, original work, optional details, electronic signature, sworn-statement checkbox). Submits to the existing `/api/report` endpoint with a `[DMCA]` reason prefix so admins see them as a distinct class in the existing report queue. Sign-in required to submit through the form; email fallback documented for users who can't sign in.
 
 ## Phase 9 — UX polish
 
