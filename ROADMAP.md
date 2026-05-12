@@ -5,7 +5,7 @@ Single source of truth. Tick boxes as work lands. Phases are ordered: each one a
 **How to resume after a context reset:** read this file top-to-bottom, find the first unchecked `[ ]` item, continue from there. Update the "Current focus" line below before you stop.
 
 > **Current focus:** Phase 8 complete. Phase 9 next — UX polish (onboarding wizard, skeletons, empty states, 404/500 pages, animations, confirm-destructive modals).
-> **Last commit:** _pending_ — Phase 8 compliance pass (legal pages, age gate, GDPR export, account deletion w/ 30-day grace + cron, DMCA flow).
+> **Last commit:** `4508433de` — Phase 8 compliance pass (legal pages, age gate, GDPR export, account deletion w/ 30-day grace + cron, DMCA flow).
 
 ---
 
