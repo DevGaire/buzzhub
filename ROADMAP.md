@@ -5,7 +5,7 @@ Single source of truth. Tick boxes as work lands. Phases are ordered: each one a
 **How to resume after a context reset:** read this file top-to-bottom, find the first unchecked `[ ]` item, continue from there. Update the "Current focus" line below before you stop.
 
 > **Current focus:** Phase 7 complete. Phase 8 next — compliance & legal (`/terms`, `/privacy`, GDPR export, account deletion with grace, age gate on signup, DMCA flow).
-> **Last commit:** _pending_ — Phase 7 close (mobile camera capture for stories via native `capture` attribute).
+> **Last commit:** `a226f6313` — Phase 7 close (mobile camera capture for stories via native `capture` attribute).
 
 ---
 
