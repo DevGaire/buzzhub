@@ -5,7 +5,7 @@ Single source of truth. Tick boxes as work lands. Phases are ordered: each one a
 **How to resume after a context reset:** read this file top-to-bottom, find the first unchecked `[ ]` item, continue from there. Update the "Current focus" line below before you stop.
 
 > **Current focus:** Phase 5 — multi-image carousel UI next (Media[] already on Post; needs a swiper component on the feed), then analytics dashboard.
-> **Last commit:** _pending_ — Phase 5 scheduled posts (SCHEDULED status + `scheduledFor`, composer Schedule UI, `/drafts` page handles both drafts and scheduled, publish-scheduled cron + Vercel entry).
+> **Last commit:** `7e7aa7c8b` — Phase 5 scheduled posts (SCHEDULED status + `scheduledFor`, composer Schedule UI, `/drafts` page handles both drafts and scheduled, publish-scheduled cron + Vercel entry).
 
 ---
 
