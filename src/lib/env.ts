@@ -9,7 +9,10 @@ const schema = z.object({
   NEXT_PUBLIC_UPLOADTHING_APP_ID: z.string().min(1),
   NEXT_PUBLIC_STREAM_KEY: z.string().min(1),
   STREAM_SECRET: z.string().min(1),
-  CORN_SECRET: z.string().min(1),
+  // Cron auth. Canonical name is CRON_SECRET (Vercel convention); the
+  // older CORN_SECRET typo is accepted as a fallback in the routes.
+  CRON_SECRET: z.string().min(1),
+  CORN_SECRET: z.string().min(1).optional(),
   NEXT_PUBLIC_BASE_URL: z.string().url(),
   SMTP_HOST: z.string().min(1),
   SMTP_PORT: z.string().min(1),

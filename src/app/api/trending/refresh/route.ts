@@ -11,7 +11,10 @@ export async function GET(req: Request) {
     url.searchParams.get("secret") ||
     req.headers.get("x-cron-secret") ||
     req.headers.get("authorization")?.replace(/^Bearer /, "");
-  if (!process.env.CORN_SECRET || secret !== process.env.CORN_SECRET) {
+  // Accept CRON_SECRET (Vercel's convention) and the older CORN_SECRET
+  // typo for backwards compat.
+  const expected = process.env.CRON_SECRET || process.env.CORN_SECRET;
+  if (!expected || secret !== expected) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 

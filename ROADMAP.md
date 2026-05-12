@@ -4,8 +4,8 @@ Single source of truth. Tick boxes as work lands. Phases are ordered: each one a
 
 **How to resume after a context reset:** read this file top-to-bottom, find the first unchecked `[ ]` item, continue from there. Update the "Current focus" line below before you stop.
 
-> **Current focus:** Phase 10 — repo-side launch prep is done (Node pin, Sentry wired, smoke script, Phase 0 Sentry checkbox closed). What's left is the operator checklist in Phase 10 below: Vercel project, env vars, `prisma migrate deploy`, custom domain, deliverability records, Stripe live mode swap, Google OAuth prod callback, uptime monitor, backup verification, smoke pass, soft launch.
-> **Last commit:** `bc8b36eed` — Phase 10 repo-side prep (Node engine pin, Sentry instrumentation files + `withSentryConfig` wrap, `scripts/smoke.mjs`).
+> **Current focus:** Phase 10 — repo-side launch prep is done. What's left is the operator checklist in Phase 10 below: Vercel project, env vars (`npm run preflight` to audit them locally first), `prisma migrate deploy`, custom domain, deliverability records, Stripe live mode swap, Google OAuth prod callback, uptime monitor, backup verification, smoke pass (`npm run smoke -- <domain>`), soft launch.
+> **Last commit:** _pending_ — Phase 10 polish (cron-secret env normalisation, all six Vercel crons wired, preflight env-check script, `.env.example` filled out).
 
 ---
 
@@ -125,16 +125,16 @@ The finish line. Don't run this until the previous phases are green.
 - [x] `/api/health` route shipped (Phase 0; pings DB).
 - [x] Sentry release tagging on deploy via `withSentryConfig` — auto-creates a release and tags events with it when `SENTRY_AUTH_TOKEN` is set.
 - [x] Smoke-test script at `scripts/smoke.mjs` (runs anonymous checks against `/api/health`, manifest, icons, `/offline`, `/login`, `/legal/*`). Run with `npm run smoke -- https://<domain>` after each deploy.
-- [x] Vercel cron entries in `vercel.json`: `/api/clear-uploads` daily, `/api/posts/publish-scheduled` every minute, `/api/users/purge-deleted` daily.
+- [x] Preflight env-check script at `scripts/preflight.mjs`. `npm run preflight` reports required-vs-set, warns on common foot-guns (Upstash half-set, Stripe key without webhook secret, etc.).
+- [x] Cron-secret env-var normalisation: cron routes now read `CRON_SECRET` first, with `CORN_SECRET` accepted as a fallback. Operators only need to set `CRON_SECRET` going forward.
+- [x] `.env.example` extended with Stripe, VAPID, Upstash, Sentry sections.
+- [x] Vercel cron entries in `vercel.json`: clear-uploads, clear-stories, publish-scheduled, purge-deleted, trending/refresh, digests/send all wired.
 
-**Pending Vercel-cron entries for already-shipped routes (operator: add to `vercel.json` once you know your plan's cron budget):**
-- `/api/clear-stories` — daily, e.g. `0 3 * * *`.
-- `/api/digests/send` — weekly, e.g. `0 14 * * MON`.
-- `/api/trending/refresh` — every hour or two, e.g. `0 * * * *`.
+**Vercel cron entries:** `vercel.json` now wires all six — `/api/clear-uploads` daily, `/api/clear-stories` daily, `/api/posts/publish-scheduled` every minute, `/api/users/purge-deleted` daily, `/api/trending/refresh` hourly, `/api/digests/send` weekly. Hobby plan tops out at 2 daily cron jobs — drop or downgrade frequency if you're not on Pro.
 
 **Operator-only (do these in the Vercel dashboard / DNS / external services):**
 - [ ] Create a production Vercel project; link to this repo.
-- [ ] Set env vars in the host: `POSTGRES_PRISMA_URL`, `POSTGRES_URL_NON_POOLING`, `GOOGLE_CLIENT_ID/SECRET`, `UPLOADTHING_SECRET`, `NEXT_PUBLIC_UPLOADTHING_APP_ID`, `NEXT_PUBLIC_STREAM_KEY`, `STREAM_SECRET`, `CORN_SECRET` *and* `CRON_SECRET` set to the same value (Vercel cron sends `Authorization: Bearer $CRON_SECRET`, route reads `CORN_SECRET` — typo carried from older code), `NEXT_PUBLIC_BASE_URL`, SMTP set, `MAIL_FROM`, Stripe live keys + `STRIPE_PRICE_ID_VERIFIED` + `STRIPE_WEBHOOK_SECRET`, optional `UPSTASH_REDIS_REST_URL/TOKEN`, optional Sentry (`SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT`), `NEXT_PUBLIC_VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY` from `scripts/setup-vapid.mjs`.
+- [ ] Set env vars in the host. The full template lives in `.env.example`. Required: DB, Google OAuth, UploadThing, Stream, `CRON_SECRET` (the cron routes now read `CRON_SECRET` first, falling back to `CORN_SECRET` for backwards compat — setting just `CRON_SECRET` is enough), `NEXT_PUBLIC_BASE_URL`, SMTP, `MAIL_FROM`, Stripe live keys, VAPID keys. Optional: Upstash Redis, Sentry. Run `npm run preflight` locally to spot anything missing before deploy.
 - [ ] Production database: use the Neon production branch; turn on PITR.
 - [ ] Run `prisma migrate deploy` on the production DB. Pending migrations: `20260512000000_add_post_drafts`, `20260512100000_add_scheduled_posts`, `20260512200000_add_analytics`, `20260512300000_add_account_deletion`.
 - [ ] Run `node scripts/bootstrap-admin.mjs <your-email>` against the production DB.

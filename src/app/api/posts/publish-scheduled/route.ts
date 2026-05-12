@@ -12,7 +12,8 @@ export async function GET(req: Request) {
     url.searchParams.get("secret") ||
     req.headers.get("x-cron-secret") ||
     req.headers.get("authorization")?.replace(/^Bearer /, "");
-  if (!process.env.CORN_SECRET || secret !== process.env.CORN_SECRET) {
+  const expected = process.env.CRON_SECRET || process.env.CORN_SECRET;
+  if (!expected || secret !== expected) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 

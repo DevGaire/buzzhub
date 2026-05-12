@@ -5,12 +5,24 @@
       "schedule": "0 2 * * *"
     },
     {
+      "path": "/api/clear-stories",
+      "schedule": "0 3 * * *"
+    },
+    {
       "path": "/api/posts/publish-scheduled",
       "schedule": "* * * * *"
     },
     {
       "path": "/api/users/purge-deleted",
       "schedule": "30 3 * * *"
+    },
+    {
+      "path": "/api/trending/refresh",
+      "schedule": "5 * * * *"
+    },
+    {
+      "path": "/api/digests/send",
+      "schedule": "0 14 * * MON"
     }
   ]
 }
