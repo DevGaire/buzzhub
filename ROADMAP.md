@@ -5,7 +5,7 @@ Single source of truth. Tick boxes as work lands. Phases are ordered: each one a
 **How to resume after a context reset:** read this file top-to-bottom, find the first unchecked `[ ]` item, continue from there. Update the "Current focus" line below before you stop.
 
 > **Current focus:** Phase 7 — pull-to-refresh on feed, bottom-sheet comments on mobile, camera capture for stories. (Phase 6 image audit / DB indexes / Lighthouse / bundle split skipped per user request.)
-> **Last commit:** _pending_ — Phase 7 PWA scaffolding (manifest, SVG icons, upgraded service worker with offline shell + media SWR, universal SW registration, install prompt).
+> **Last commit:** `e91a5886f` — Phase 7 PWA scaffolding (manifest, SVG icons, upgraded service worker with offline shell + media SWR, universal SW registration, install prompt).
 
 ---
 
