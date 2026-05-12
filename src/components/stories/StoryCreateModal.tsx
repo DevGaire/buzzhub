@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { CreateStoryValues, createStorySchema } from "@/lib/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Upload, X, Globe, Users, UserCheck } from "lucide-react";
+import { Camera, Loader2, Upload, Video, X, Globe, Users, UserCheck } from "lucide-react";
 import {
     Select,
     SelectContent,
@@ -22,7 +22,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import Image from "next/image";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useUploadThing } from "@/lib/uploadthing";
 
@@ -42,10 +42,16 @@ interface MediaFile {
 export default function StoryCreateModal({ isOpen, onClose }: StoryCreateModalProps) {
     const queryClient = useQueryClient();
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const cameraPhotoRef = useRef<HTMLInputElement>(null);
+    const cameraVideoRef = useRef<HTMLInputElement>(null);
     const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
     const [separateStories, setSeparateStories] = useState(false);
     const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
     const [privacy, setPrivacy] = useState<"PUBLIC" | "FOLLOWERS" | "CLOSE_FRIENDS">("FOLLOWERS");
+    // Mobile cameras live behind <input capture="environment">. On desktop
+    // the capture attribute is ignored, so we hide those buttons to avoid
+    // a confusing "Camera" button that just opens the file picker.
+    const [hasCoarsePointer, setHasCoarsePointer] = useState(false);
 
     const form = useForm<CreateStoryValues>({
         resolver: zodResolver(createStorySchema),
@@ -53,6 +59,13 @@ export default function StoryCreateModal({ isOpen, onClose }: StoryCreateModalPr
             mediaIds: [],
         },
     });
+
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        setHasCoarsePointer(
+            window.matchMedia?.("(pointer: coarse)").matches ?? false,
+        );
+    }, []);
 
     const { startUpload, isUploading } = useUploadThing("attachment", {
         onBeforeUploadBegin: (files: File[]) => {
@@ -263,7 +276,7 @@ export default function StoryCreateModal({ isOpen, onClose }: StoryCreateModalPr
                 </DialogHeader>
 
                 <div className="space-y-4">
-                    {/* File input */}
+                    {/* File / camera input */}
                     <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 p-8">
                         <Upload className="mb-4 size-12 text-muted-foreground" />
                         <p className="mb-2 text-center text-sm text-muted-foreground">
@@ -272,19 +285,64 @@ export default function StoryCreateModal({ isOpen, onClose }: StoryCreateModalPr
                         <p className="mb-4 text-center text-xs text-muted-foreground">
                             Max 10 images or 1 video • JPG, PNG, MP4
                         </p>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={isProcessing}
-                        >
-                            Choose Files
-                        </Button>
+                        <div className="flex flex-wrap items-center justify-center gap-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={isProcessing}
+                            >
+                                Choose Files
+                            </Button>
+                            {hasCoarsePointer && (
+                                <>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => cameraPhotoRef.current?.click()}
+                                        disabled={isProcessing}
+                                        title="Take a photo with your camera"
+                                    >
+                                        <Camera className="mr-2 size-4" />
+                                        Take photo
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => cameraVideoRef.current?.click()}
+                                        disabled={isProcessing}
+                                        title="Record a short video"
+                                    >
+                                        <Video className="mr-2 size-4" />
+                                        Record video
+                                    </Button>
+                                </>
+                            )}
+                        </div>
                         <input
                             ref={fileInputRef}
                             type="file"
                             accept="image/*,video/*"
                             multiple
+                            className="hidden"
+                            onChange={handleFileSelect}
+                        />
+                        {/* Native camera capture — `capture` is mobile-only;
+                            the browser ignores it on desktop, so we gate the
+                            buttons above to coarse-pointer devices. */}
+                        <input
+                            ref={cameraPhotoRef}
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            className="hidden"
+                            onChange={handleFileSelect}
+                        />
+                        <input
+                            ref={cameraVideoRef}
+                            type="file"
+                            accept="video/*"
+                            capture="environment"
                             className="hidden"
                             onChange={handleFileSelect}
                         />
